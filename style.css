@@ -1,0 +1,40 @@
+input, button, label {
+	font: 600 0.75em Helvetica;
+}
+
+.ui-menu { 
+  width: 150px; 
+}
+#startup {
+	margin-right: 0px;
+	float: right;
+	font: 600 1em Helvetica; 
+}
+#menu {
+	margin-left: 0px;
+	float: left;
+}
+
+#init_device, .ui-controlgroup-vertical > .ui-controlgroup-item, #device_path { 
+  text-align: center; 
+}
+
+#init_device, .ui-controlgroup-vertical > .ui-controlgroup-item {
+  margin-top: 0.25em;
+  font-weight: bold;
+  font: 600 1em Helvetica;
+}
+
+#init_device:hover {
+	background: #afafca;
+}
+
+#device_path {
+  padding: 0.5em;
+	font-weight: 400;
+}
+
+.ui-controlgroup .ui-controlgroup-label span {
+  font-size: 100%;
+}
+

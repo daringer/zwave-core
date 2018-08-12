@@ -1,11 +1,35 @@
+from time import time
+
 from flask_restful import reqparse
 
 from openzwave.network import ZWaveNetwork
 from openzwave.option import ZWaveOption
+from openzwave.node import ZWaveNode
 
 from pydispatch import dispatcher
 
 from signals import net_signals
+
+
+class Node:
+    def __init__(self, zwave_node): 
+        self.raw_node = zwave_node
+
+    @property
+    def values(self):
+        return self.raw_node.get_values()
+
+    def get_configs(self):
+        self.raw_node.request_all_config_params()
+    
+    @property
+    def configs(self):
+        return self.raw_node.config
+
+
+    def __getattr__(self, key):
+        return getattr(self.raw_node, key)
+
 
 class ZWave:
     def __init__(self, error_handler):
@@ -20,19 +44,21 @@ class ZWave:
 
         self.err_handler = error_handler
 
+        self.signals = []
         for sig, handler in net_signals:
             if handler is None:
                 dispatcher.connect(self.default_signal_handler, sig)
 
-    def default_signal_handler(sender, signal):
-        print ("Caught SIGNAL....")
-        print (sender)
-        print (signal)
+    def default_signal_handler(self, sender, signal):
+        #print ("Caught SIGNAL: ", sender, signal)
+        self.signals.append([time(), sender, signal])
+        while len(self.signals) > 100:
+            self.signals.pop(0)
   
     def get_node(self, node_id, silentfail=False):
         if not self.net:
             self.err_handler(414)
-        return self.net.nodes.get(node_id) or self.err_handler(404)
+        return Node(self.net.nodes.get(node_id)) or self.err_handler(404)
 
     def __getitem__(self, node_id):
       return self.get_node(node_id)

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head lang="en">
+    <meta charset="UTF-8">
+    <title>ZWave Central - Frontend</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- styles -->
+		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
+    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.5.3/jsgrid.min.css" />
+    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.5.3/jsgrid-theme.min.css" />
+
+		<!-- script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script -->
+		<script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.js"></script>
+		<!--script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script -->
+		<script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.5.3/jsgrid.min.js"></script>
+    <script src="/frontend/js/socket.io"></script>
+   
+    <link rel="stylesheet" href="/frontend/css/style" />
+		<script type="text/javascript" src="/frontend/js/init"></script>
+
+  </head>
+  <body>
+		<!-- div -->
+	  	<ul id="menu">
+				<li><div>net start</div></li>
+				<li><div>net stop</div></li>
+				<li><div>available signals</div></li>
+				<li><div>last signals</div></li>
+				<li><div>add node</div></li>
+				<li><div>cancel command</div></li>
+				<li><div>write config</div></li>
+	  	</ul>
+  		<div id="startup">
+  			<label for="device_path" class="ui-controlgroup-label">device path</label>
+				<input id="device_path" class="ui-text-input"> <!-- value="[enter device path]"> -->
+		  	<button id="init_device">init device</button>
+			</div>
+		<!-- /div -->
+		<br />
+		<div id="node_grid"></div>
+		<br />
+		<div id="event_grid"></div>
+		
+		<script type="text/javascript" src="/frontend/js/end"></script>
+
+</body>
+</html>

@@ -1,5 +1,8 @@
 from flask_restful import reqparse
 
+###
+### ZWave Start-up Options Parser
+###
 opt_parse = reqparse.RequestParser()
 opt_parse.add_argument("device", type=str, 
      help="(file) path to the (zwave) serial device", default="/dev/ttyACM0")
@@ -41,5 +44,4 @@ opt_parse.add_argument("notify_transactions", type=bool,
      help="notifcations when transaction complete is reported", default=False)
 opt_parse.add_argument("suppress_value_refresh", type=bool, 
      help="true: notifications for (unchanged) values will not be sent.", default=False)
-
 
