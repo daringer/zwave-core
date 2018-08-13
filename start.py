@@ -14,7 +14,7 @@ from flask_restful import reqparse
 from flask import abort
 from flask import url_for
 
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO, emit
 #import socketio as SocketIO
 
 from jinja2 import Template, Environment, PackageLoader, select_autoescape, BaseLoader
@@ -41,13 +41,13 @@ socketio = SocketIO(app, async_mode="eventlet")
 #socketio = SocketIO(app, async_mode="threading")
 #socketio = SocketIO(app, async_mode="gevent")
 
-@app.after_request
-def no_caching_header(r):
-    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    r.headers["Pragma"] = "no-cache"
-    r.headers["Expires"] = "0"
-    r.headers['Cache-Control'] = 'public, max-age=0'
-    return r
+#@app.after_request
+#def no_caching_header(r):
+#    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+#    r.headers["Pragma"] = "no-cache"
+#    r.headers["Expires"] = "0"
+#    r.headers['Cache-Control'] = 'public, max-age=0'
+#    return r
 
 #def api_route(self, *args, **kwargs):
 #    def wrapper(cls):
@@ -60,7 +60,8 @@ thread = None
 thread_lock = Lock()
 @socketio.on("connect", namespace="/websocket")
 def io_connect():
-    emit("message", {"msg": "Hello World"}, namespace="/websocket") #oom="ficken", broadcast=True)
+    #emit("message", {"msg": "Hello World"}, namespace="/websocket") #oom="ficken", broadcast=True)
+    emit("message", {"msg": "Hello World (from websocket server)"}, namespace="/websocket") #oom="ficken", broadcast=True)
 
     def consume_queue():
         global sig_queue 
@@ -79,7 +80,8 @@ def io_connect():
 
 @socketio.on("disconnect", namespace="/websocket")
 def io_disconnect():
-    emit("message", {"msg": "Goodbye World"}, namspace="/websocket")
+    #emit("message", {"msg": "Goodbye World"}, namspace="/websocket")
+    emit("message", {"msg": "Goodbye World (from websocket server)"}, namspace="/websocket")
     return True
 
 ###
@@ -289,8 +291,13 @@ def ctrlaction(member, ctrl_idx=0):
 def nodelist():
     if not zwave.net:
         abort(414)
-    return jsonify([
-        [{ "node_id": nid, "name": node.name, "product_type": node.product_type, "product_name": node.product_name }] \
+    #return jsonify([
+    #    [{ "node_id": nid, "name": node.name, "product_type": node.product_type, "product_name": node.product_name }] \
+    #            for nid, node in zwave.net.nodes.items() ])
+    return jsonify(
+        [{ "node_id": nid, "name": node.name, "location": node.location, "type": node.type, "specific": node.specific, \
+            "product_name": node.product_name, "product_type": node.product_type, "product_id": node.product_id, \
+            "manufacturer_name": node.manufacturer_name, "manufacturer_id": node.manufacturer_id } \
                 for nid, node in zwave.net.nodes.items() ])
 
 @rest.get("/node/<int:node_id>/values")

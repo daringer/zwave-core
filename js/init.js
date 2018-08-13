@@ -114,11 +114,11 @@ function set_init_button(show_init) {
     var but = $("#init_device");
     if(show_init) {
         inp.prop("disabled", false);
- 	    but.html("init device");
+ 	    but.html("connect");
         //gob.inited = false;
     } else {
  	    inp.prop("disabled", true);
- 	    but.html("close device");
+ 	    but.html("disconnect");
         //gob.inited = true;
         //gob.num_nodes = get_nodes();
     }
@@ -177,10 +177,11 @@ $( function() {
      }
   });
 
-  generic_ajax("POST", "/net/ctrl/action/device", {}, function(res) {
+  //generic_ajax("POST", "/net/ctrl/action/device", {}, function(res) {
+  generic_ajax("GET", "/net", {}, function(res) {
     if (typeof res.error !== "undefined")
       set_init_button(true);
-    else if(typeof res.state !== "undefined" && res.state == 0)
+    else if(typeof res.state !== "undefined" && res.state[0] == 0)
       set_init_button(true);
     else
       set_init_button(false);
