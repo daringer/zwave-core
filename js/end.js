@@ -9,6 +9,7 @@ $("#event_grid").jsGrid({
 	sorting: true,
 	paging: true,
 	autoload: false,
+  filtering: false,
 
 	controller: { 
 		loadData: function() {
@@ -27,7 +28,7 @@ $("#event_grid").jsGrid({
 		{ name: "Date",      type: "text", width: 32 },
 		{ name: "Time",      type: "text", width: 40 },
 		{ name: "EventType", title: "Event Type", type: "text", width: 80 },
-		{ name: "Content", type: "text", width: 220 },
+		{ name: "Content",   type: "text", width: 220 },
 	]
 });
 
@@ -39,7 +40,8 @@ $("#node_grid").jsGrid({
     editing: true,
     sorting: true,
     paging: false,
-	autoload: false,
+    autoload: false,
+    filtering: false,
 
     controller: {
 	    loadData: function() {
@@ -54,20 +56,19 @@ $("#node_grid").jsGrid({
 		}
 	},
 
-    fields: [
-        { name: "node_id",            title: "Node ID",             type: "text" },
-		{ name: "name",               title: "Name",                type: "text" }, 
-        { name: "location",           title: "Location",            type: "text" },
-        { name: "type",               title: "Type",                type: "text" },
-        { name: "specific",           title: "Specific Type",       type: "text" },
-		{ name: "product_name",       title: "Product Name",        type: "text" }, 
-		{ name: "product_type",       title: "Product Type",        type: "text" }, 
-		{ name: "product_id",         title: "Product ID",          type: "text" }, 
-		{ name: "manufacturer_name",  title: "Manufacturer Name",   type: "text" },
-		{ name: "manufacturer_id",    title: "Manufacturer ID",     type: "text" }, 
-	    { type: "control",            width: 35 },                 
-    ]
-    //{ name: "Manufacturer Name", type: "checkbox", title: "Is Married", sorting: false },
-    //{ name: "Product Name",      type: "select", width: 200 }, //items: countries, valueField: "Id", textField: "Name" },
+  fields: [
+    { name: "node_id",            title: "Node ID",             type: "text" },
+    { name: "name",               title: "Name",                type: "text" }, 
+    { name: "location",           title: "Location",            type: "text" },
+    { name: "type",               title: "Type",                type: "text" },
+    { name: "specific",           title: "Specific Type",       type: "text" },
+    { name: "product_name",       title: "Product Name",        type: "text" }, 
+    { name: "product_type",       title: "Product Type",        type: "text" }, 
+    { name: "product_id",         title: "Product ID",          type: "text" }, 
+    { name: "manufacturer_name",  title: "Manufacturer Name",   type: "text" },
+    { name: "manufacturer_id",    title: "Manufacturer ID",     type: "text" }, 
+  ]
+          //{ name: "Manufacturer Name", type: "checkbox", title: "Is Married", sorting: false },
+          //{ name: "Product Name",      type: "select", width: 200 }, //items: countries, valueField: "Id", textField: "Name" },
 	//{ name: "Name",              type: "text",   width: 150 }, //, validate: "required" },
 });

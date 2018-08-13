@@ -2,7 +2,7 @@ from flask_restful import reqparse
 
 from openzwave.network import ZWaveNetwork
 from openzwave.option import ZWaveOption
-
+from openzwave.object import ZWaveException
 # import openzwave
 # from openzwave.node import ZWaveNode
 # from openzwave.node import ZWaveNode
@@ -71,18 +71,22 @@ class ZWave:
         self.raw_apts = reqparse.Namespace()
 
     def set_options(self):
-        opts = self.raw_opts
-        self.opts = ZWaveOption(
-            device=opts.get("device"),
-            config_path=opts.get("config_path"),
-            user_path=opts.get("user_path"),
-            cmd_line=opts.get("cmd_line")
-        )
-        for key, val in opts.items():
-            if key not in ["device", "config_path", "user_path", "cmd_line"]:
-                getattr(self.opts, "set_" + key)(val)
-        self.opts.lock()
-        self.opts_locked = True
+        try:
+            opts = self.raw_opts
+            self.opts = ZWaveOption(
+                device=opts.get("device"),
+                config_path=opts.get("config_path"),
+                user_path=opts.get("user_path"),
+                cmd_line=opts.get("cmd_line")
+            )
+            for key, val in opts.items():
+                if key not in ["device", "config_path", "user_path", "cmd_line"]:
+                        getattr(self.opts, "set_" + key)(val)
+            self.opts.lock()
+            self.opts_locked = True
+            return {"ok": "success"}
+        except ZWaveException as e:
+            return {"fail": "ZWaveException thrown: {}".format(str(e))}
 
     def start(self):
         if not self.opts_locked:
@@ -91,5 +95,26 @@ class ZWave:
         self.ctrl.append(self.net.controller)
         self.nodes = self.net.nodes
         self.home_id = self.net.home_id
-        self.net.start()
+        try:
+            self.net.start()
+        except ZWaveException as e:
+            return {"fail": "ZWaveException thrown: {}".format(str(e))}
+        return {"success": "ZWave network started"} 
+
+def get_member(src, attr_name, args):
+    obj = getattr(src, attr_name)
+    if callable(obj):
+        kw = {}
+        for key, val in args.items():
+            if val.startswith("[int]"):
+                kw[key] = int(val[5:])
+            elif val.startswith("[float]"):
+                kw[key] = float(val[7:])
+            elif val.startswith("[bool]"):
+                kw[key] = val[6:].lower() == "true"
+            else:
+                kw[key] = val
+        return obj(**kw)
+    return obj
+
 

@@ -2,17 +2,22 @@ input, button, label {
 	font: 600 0.75em Helvetica;
 }
 
-.ui-menu { 
-  width: 150px; 
+
+input:focus { color: #454545; }
+
+input, .ui-controlgroup-halfbutton, .ui-button, .ui-corner-button {
+	background-color: #f6f6f6;
+	padding-top: 6px;
+    padding-bottom: 6px;
+    height: 18px;
 }
-#startup {
-	margin-right: 0px;
-	float: right;
-	font: 600 1em Helvetica; 
+
+input:hover, .ui-controlgroup-halfbutton:hover, .ui-button:hover {
+	background-color: #fefefe;
 }
-#menu {
-	margin-left: 0px;
-	float: left;
+input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
+	background-color: #dcdcdc;
+    color: #fafafa;
 }
 
 #node_grid  {
@@ -23,30 +28,70 @@ input, button, label {
     font-size: 0.75em;
 }
 
-#init_device, .ui-controlgroup-vertical > .ui-controlgroup-item, #device_path { 
+.ui-controlgroup-vertical > .ui-controlgroup-item, #device_path, .ui-controlgroup-button, 
+.ui-controlgroup-label, .ui-text-input { 
+
   text-align: center; 
 }
 
-#init_device, .ui-controlgroup-vertical > .ui-controlgroup-item {
+.ui-controlgroup-vertical > .ui-controlgroup-item {
   margin-top: 0.25em;
   font-weight: bold;
   font: 600 1em Helvetica;
 }
 
-#init_device {
-  margin-bottom: 0.25em;
-}
-
-#init_device:hover {
-	background: #afafca;
-}
-
-#device_path {
-  padding: 0.5em;
-  font-weight: 400;
+.top_path, #box_buttons_onoff, .top_box, #device_off, #device_on, .ui-text-halfinput {
+  padding-left: 0px;
+  padding-right: 0px;
 }
 
 .ui-controlgroup .ui-controlgroup-label span {
   font-size: 100%;
+  width: 156px;
 }
 
+#device_on, #log_generic {
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 0px;
+}
+
+#device_off, #log_console {
+  border-left: 0;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 3px;
+}
+
+.lower_box {
+  width: 160px;
+  padding: 0;
+  display: table;
+  table-layout: fixed;
+  border: 0;
+}
+
+.top_path {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  width: 158px;
+  font-weight: 400;
+  border: 1px solid #c5c5c5;
+}
+
+.top_box {
+	margin-right: 0px;
+	float: left;
+	font: 600 1em Helvetica; 
+    margin-bottom: 0.75em;
+    margin-right: 0.225em;
+}
+
+.ui-controlgroup-halfbutton  {
+  width: 80px;
+  margin: 0;
+  display: inline-block;
+  height: 32px;
+}
+
+
+/*#log_generic {  width: 78px; }
+#log_console {  width: 79px; }*/

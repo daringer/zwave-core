@@ -36,24 +36,32 @@ function DumpObject(obj, descent=false) {
     return ret;
 };*/
 
+function camelcase2title(s) {
+	return s.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
+}
+
 function get_nodes() {
-    var node_count = 0;
+    gob.num_nodes = 0;
     generic_ajax("GET", "/nodes", {}, function(res) {
-        add_event(Date.now(), "Retrieving all nodes from server...");
-        console.log(res);
-        for (var item in res) {
-            //var value = obj[property];
-            add_node(item);
-        }
-        node_count = res.length;
+        add_log_entry("Retrieving all nodes from server...");
+		$("#node_grid").jsGrid("option", "data", []);
+        for (var idx in res) 
+            add_node(res[idx]);
+        gob.num_nodes = res.length;
     });
-    return node_count;
+    return gob.num_nodes;
 };
 
-function add_event(stamp, text, event_type) {
+function add_log_entry(text, stamp, event_type) {
+	if (typeof stamp === "undefined" || stamp == null)
+		stamp = Date.now();
+
     var d = new Date(stamp);
-    if (event_type == null)
+    if (typeof event_type === "undefined" || event_type == null)
         event_type = "Info Message";
+	else
+		event_type = camelcase2title(event_type);
+	
 	return $("#event_grid").jsGrid("insertItem", {
 		stamp: stamp, 
         Date: d.strftime("%d.%m.%Y"),
@@ -86,42 +94,24 @@ function generic_ajax(type, url, data, success_func) {
 		url: url, 
 		data: data, 
 		error: function() {
-			add_event(Date.now(), ("Failed: '" + type + "' request to: '" +
-				url + "' with data: " + DumpObject(data)));
+			add_log_entry("Failed: '" + type + "' request to: '" + url + "' with data: " + DumpObject(data));
 		},
 		success: success_func
 	});
 };
 
-function post_opts(resp=null, status=null, xhr=null, opts) {
+function post_opts(opts) {
  	return generic_ajax("POST", "/net/opts", opts, function() {
         if (!$("#device_path").prop("disabled"))
-            add_event(Date.now(), "Success adding option(s): " + DumpObject(opts));
- 	}).done(post_net_start);
-};
-
-function post_net_start(resp=null, status=null, xhr=null) {
-    var inp = $("#device_path");
-    var act = (inp.prop("disabled")) ? "stop" : "start";
-	return generic_ajax("POST", "/net/action/" + act, {}, function() {
- 		add_event(Date.now(), act[0].toUpperCase() + act.slice(1).toLowerCase() + "ed controller & network");
- 		set_init_button(inp.prop("disabled"));
+            add_log_entry("Success adding option(s): " + DumpObject(opts));
  	});
 };
 
-function set_init_button(show_init) {
+function post_net_start_stop(act) {
     var inp = $("#device_path");
-    var but = $("#init_device");
-    if(show_init) {
-        inp.prop("disabled", false);
- 	    but.html("connect");
-        //gob.inited = false;
-    } else {
- 	    inp.prop("disabled", true);
- 	    but.html("disconnect");
-        //gob.inited = true;
-        //gob.num_nodes = get_nodes();
-    }
+	return generic_ajax("POST", "/net/action/" + act, {}, function() {
+ 		add_log_entry(act[0].toUpperCase() + act.slice(1).toLowerCase() + "ed controller & network");
+ 	});
 };
 
 // gob == Global State Object
@@ -132,64 +122,94 @@ var gob = {
     num_nodes: 0,
     // maybe a container for often needed (dom)-elements?
     elems: {},
+    // keep device path
+	device_path: null
 };
 
 $( function() {
  	var inp = $("#device_path");
- 	var but = $("#init_device");
+ 	var but_on = $("#device_on");
+ 	var but_off = $("#device_off");
  	var evts = $("#event_grid");
- 	inp.val("/dev/ttyACM0");
+	
+ 	inp.click(function(ev) {
+		if (inp.val().slice(0, 1) == "[")
+			inp.val("")
+	});
 
-    //var socket = io.connect("http://" + document.domain + ":" + location.port + "/websocket"); //, {"transports": ["websocket"] });
+    but_on.click(function() {
+      var opts = new Object({device: inp.val()});
+      $.when( post_opts(opts).done( () => post_net_start_stop("start") ) );
+    });
+
+    but_off.click(function() {
+      post_net_start_stop("stop");
+    });
+	
+	inp.focusout(function() {
+		if (inp.val().trim() == "")
+			inp.val("[enter device path]");
+    });
+
+	// global event handler, if network goes (or is) running
+	$( document ).on("ZWave::NetworkStarted", function() {
+		generic_ajax("POST", "/net/ctrl/action/device", {}, 
+			(res) => { 
+				gob.device_path = res.returned;
+				gob.inited = true;
+				inp.prop("disabled", true);
+				inp.val(res.returned); 
+				but_on.prop("disabled", true); 
+				but_off.prop("disabled", false);
+				get_nodes();
+			});
+	});
+	// global event handler, if network goes (or is) down
+	$( document ).on("ZWave::NetworkStopped", function() {
+		gob.device_path = null;
+		gob.inited = false;
+		inp.prop("disabled", false);
+		if (inp.val()[0] != "/")
+			inp.val("[enter device path]");
+		but_on.prop("disabled", false); 
+		but_off.prop("disabled", true);
+	});
+
+
+	// init and connect to websocket-based events
     var socket = io.connect("http://127.0.0.1:5000/websocket", {"transports": ["websocket"]}); 
-    // + document.domain + ":" + location.port + "/websocket"); //, {"transports": ["websocket"] });
 
-  socket.on('connect',    function()     {       add_event(Date.now(), "Websocket connected successfully"); });
-  socket.on('disconnect', function()     {       add_event(Date.now(), "Websocket disconnected successfuly"); });
-  socket.on("message",    function(data) {    
+    socket.on('connect',    function()     { add_log_entry("Websocket connected successfully");   });
+    socket.on('disconnect', function()     { add_log_entry("Websocket disconnected successfuly"); });
+    socket.on("message",    function(data) {    
 		console.log(data);
+		// a stamp identifies as a ZWave originating "message"
         if (data.stamp) {
-          var txt = (data.sender == "_Anonymous") ? "" : ("<b>From:</b> " + data.sender);
+		  // trigger ZWave signal as custom JavaScript event!
+          $( document ).trigger( "ZWave::" + data.event_type );
+          // construct and insert event-log entry
+		  var txt = (data.sender == "_Anonymous") ? "" : ("<b>From:</b> " + data.sender);
           if (data.node_id)
             txt += " <b>NodeID:</b> " + data.node_id;
           if (data.value || data.value_id)
             txt += " <b>Value:</b> " + data.value + " <b>ValueID:</b> " + data.value_id;
-  		  add_event(data.stamp*1000, txt, data.event_type);
+  		  add_log_entry(txt, data.stamp * 1000, data.event_type);
         } else
-          add_event(Date.now(), data.msg);
+		  // websocket "message" not originating from ZWave
+          add_log_entry(data.msg);
   });
 
-  $( "#menu" ).menu({
-         select: function( event, ui ) {
- 				 var cmd = ui.item[0].firstChild.innerText;
-         }
-  });
- 	
-  $( "#startup" ).controlgroup();
-  $( "#startup" ).controlgroup({"direction": "vertical"});
+  // jquery-ui init(s)
+  $( ".top_box" ).controlgroup();
+  $( ".top_box" ).controlgroup({"direction": "vertical"});
 
-  $( "#menu" ).on( "menuselect", function( event, ui ) {} );
-
-  $( "#init_device" ).on({
- 	  click: function() {
-			var opts = new Object({device: inp.val()});
- 			post_opts(null, null, null, opts);
-     }
-  });
-
-  //generic_ajax("POST", "/net/ctrl/action/device", {}, function(res) {
+  // finally check if the network is up or down:
   generic_ajax("GET", "/net", {}, function(res) {
-    if (typeof res.error !== "undefined")
-      set_init_button(true);
-    else if(typeof res.state !== "undefined" && res.state[0] == 0)
-      set_init_button(true);
+    if (typeof res.error !== "undefined" || (typeof res.state !== "undefined" && res.state[0] == 0))
+	  $( document ).trigger("ZWave::NetworkStopped");
     else
-      set_init_button(false);
+	  $( document ).trigger("ZWave::NetworkStarted");
   });
 
-  /*if (gob.inited) {
-    sleep(10);
-    get_nodes();
-  }*/
 
 });

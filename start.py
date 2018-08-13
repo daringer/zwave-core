@@ -1,12 +1,16 @@
+import eventlet
+from eventlet.semaphore import Semaphore as Lock
+from eventlet.queue import Queue, Empty, Full
+
 import os
 import functools
 from enum import IntEnum
 import urllib
 from time import time 
-
-import eventlet
-from eventlet.queue import Queue, Empty, Full
-from threading import Thread, Lock
+from uuid import uuid4
+#import eventlet
+#from eventlet.queue import Queue, Empty, Full
+#from threading import Thread, Lock
 
 from flask import Flask, jsonify, request, Response
 from flask_restful import Resource, Api
@@ -14,7 +18,7 @@ from flask_restful import reqparse
 from flask import abort
 from flask import url_for
 
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, send
 #import socketio as SocketIO
 
 from jinja2 import Template, Environment, PackageLoader, select_autoescape, BaseLoader
@@ -22,10 +26,9 @@ from jinja2 import Template, Environment, PackageLoader, select_autoescape, Base
 ###### own
 from parsers import opt_parse
 
-from zwave_cls import ZWave
+from zwave_cls import ZWave, get_member
 
 from enums import NetState
-from utils import get_member
 
 name = "Z-WaveCentral"
 
@@ -123,19 +126,22 @@ rest = _rest()
 #def build_dct_from(obj, names):
 #  return dict( (name, getattr(obj, name)) for name in names )
 
+#### @TODO: those two here have NOOO limits in size!!!! @FIXME
 sig_queue = Queue()
+sig_archive = {}
 def default_signal_handler(sender, signal, *v, **kw):
     #print("DEFAULT HANDLER", signal, v, kw)
-    global sig_queue
+    global sig_queue, sig_archive
+    x = {"stamp": time(), "sender": str(sender), "event_type": signal, "uuid": uuid4().int}
     while True:
         try:
-            x = {"stamp": time(), "sender": str(sender), "event_type": signal}
             if "node" in kw:
                 x["node_id"] = kw["node"].node_id
             if "value" in kw:
                 x["value"] = kw["value"].data
                 x["value_id"] = kw["value"].value_id
             sig_queue.put(x, timeout=5)
+            sig_archive[x["uuid"]] = x
             break
         except Full:
             continue
@@ -176,18 +182,21 @@ def frontend():
 ###
 
 class Options(Resource):
-    def get(self):
-        return {"options": dict(zwave.raw_opts.items()) }
-    def patch(self):
-        zwave.update_options(opt_parse.parse_args(strict=True))
-        return {"options-state": "editable", "options": dict(zwave.raw_opts.items()) }
-    def post(self):
-        zwave.update_options(opt_parse.parse_args(strict=True))
-        zwave.set_options()
-        return {"options-state": "locked",   "options": dict(zwave.raw_opts.items()) }
-    def delete(self):
-        zwave.clear_options()
-        return {"options-state": "empty",    "options": dict(zwave.raw_opts.items()) }
+	def get(self):
+		return {"options": dict(zwave.raw_opts.items()) }	
+	def patch(self):
+		zwave.update_options(opt_parse.parse_args(strict=True))
+		return {"options-state": "editable", "options": dict(zwave.raw_opts.items()) }
+	def post(self):
+		zwave.update_options(opt_parse.parse_args(strict=True))
+		ret = zwave.set_options()
+		if "ok" in ret:
+			return {"options-state": "locked",   "options": dict(zwave.raw_opts.items()) }
+		else:
+			abort(404)
+	def delete(self):
+		zwave.clear_options()
+		return {"options-state": "empty",    "options": dict(zwave.raw_opts.items()) }
 
 ###
 ### "Table of contents"
@@ -291,9 +300,6 @@ def ctrlaction(member, ctrl_idx=0):
 def nodelist():
     if not zwave.net:
         abort(414)
-    #return jsonify([
-    #    [{ "node_id": nid, "name": node.name, "product_type": node.product_type, "product_name": node.product_name }] \
-    #            for nid, node in zwave.net.nodes.items() ])
     return jsonify(
         [{ "node_id": nid, "name": node.name, "location": node.location, "type": node.type, "specific": node.specific, \
             "product_name": node.product_name, "product_type": node.product_type, "product_id": node.product_id, \

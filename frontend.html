@@ -21,23 +21,34 @@
     <link rel="stylesheet" href="/static/style.css" />
     <script type="text/javascript" src="/static/js/init.js"></script>
 
-
-
-
   </head>
   <body>
 		<!-- div -->
-	  	<ul id="menu">
-				<li><div>add node</div></li>
-				<li><div>cancel command</div></li>
-				<li><div>write config</div></li>
-	  	</ul>
-  		<div id="startup">
+  		<div id="startup" class="top_box">
   			<label for="device_path" class="ui-controlgroup-label">device path</label>
-				<input id="device_path" class="ui-text-input"> <!-- value="[enter device path]"> -->
-		  	<button id="init_device">init device</button>
-			</div>
-		<!-- /div -->
+				<input id="device_path" class="ui-text-input top_path" /> 
+            <label for="box_buttons_onoff" class="ui-controlgroup-label">network</label>
+            <div id="box_buttons_onoff" class="lower_box">
+		  	    <button id="device_on" class="ui-controlgroup-halfbutton">on</button>
+		      	<button id="device_off" class="ui-controlgroup-halfbutton">off</button>
+            </div>
+		</div>
+        <div id="zwave_config_paths" class="top_box">
+  			<label for="config_path" class="ui-controlgroup-label">config path</label>
+				<input id="config_path" class="ui-text-input top_path" /> 
+  			<label for="user_path" class="ui-controlgroup-label">user path</label>
+				<input id="user_path" class="ui-text-input top_path" /> 
+		</div>
+        <div id="zwave_config_log" class="top_box">
+  			<label for="log_path" class="ui-controlgroup-label">log path</label>
+				<input id="log_path" class="ui-text-input top_path" /> 
+  			<label for="log_choice" class="ui-controlgroup-label">logging</label>
+            <div id="log_choice" class="lower_box">
+		  	    <button id="log_generic" class="ui-controlgroup-halfbutton">generic</button>
+		      	<button id="log_console" class="ui-controlgroup-halfbutton">stdout</button>
+            </div> 
+		</div>
+
 		<br />
 		<div id="node_grid"></div>
 		<br />
