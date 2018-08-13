@@ -1,10 +1,16 @@
-from time import time
-
 from flask_restful import reqparse
 
 from openzwave.network import ZWaveNetwork
 from openzwave.option import ZWaveOption
-from openzwave.node import ZWaveNode
+
+# import openzwave
+# from openzwave.node import ZWaveNode
+# from openzwave.node import ZWaveNode
+# from openzwave.value import ZWaveValue
+# from openzwave.scene import ZWaveScene
+# from openzwave.controller import ZWaveController
+# from openzwave.network import ZWaveNetwork
+# from openzwave.option import ZWaveOption
 
 from pydispatch import dispatcher
 
@@ -12,7 +18,7 @@ from signals import net_signals
 
 
 class Node:
-    def __init__(self, zwave_node): 
+    def __init__(self, zwave_node):
         self.raw_node = zwave_node
 
     @property
@@ -21,18 +27,17 @@ class Node:
 
     def get_configs(self):
         self.raw_node.request_all_config_params()
-    
+
     @property
     def configs(self):
         return self.raw_node.config
-
 
     def __getattr__(self, key):
         return getattr(self.raw_node, key)
 
 
 class ZWave:
-    def __init__(self, error_handler):
+    def __init__(self, error_handler, sig_handler):
         self.ctrl = []
         self.net = None
         self.nodes = None
@@ -44,24 +49,18 @@ class ZWave:
 
         self.err_handler = error_handler
 
-        self.signals = []
         for sig, handler in net_signals:
             if handler is None:
-                dispatcher.connect(self.default_signal_handler, sig)
+                dispatcher.connect(sig_handler, signal=sig, sender=dispatcher.Any)
+                #print("connecting sig_handler: {}".format(sig_handler))
 
-    def default_signal_handler(self, sender, signal):
-        #print ("Caught SIGNAL: ", sender, signal)
-        self.signals.append([time(), sender, signal])
-        while len(self.signals) > 100:
-            self.signals.pop(0)
-  
     def get_node(self, node_id, silentfail=False):
         if not self.net:
             self.err_handler(414)
         return Node(self.net.nodes.get(node_id)) or self.err_handler(404)
 
     def __getitem__(self, node_id):
-      return self.get_node(node_id)
+        return self.get_node(node_id)
 
     def update_options(self, opts):
         self.raw_opts.update(opts)
@@ -81,7 +80,7 @@ class ZWave:
         )
         for key, val in opts.items():
             if key not in ["device", "config_path", "user_path", "cmd_line"]:
-                getattr(self.opts, "set_" + key)(val) 
+                getattr(self.opts, "set_" + key)(val)
         self.opts.lock()
         self.opts_locked = True
 
@@ -90,8 +89,7 @@ class ZWave:
             return {"fail": "options not locked"}
         self.net = ZWaveNetwork(self.opts, autostart=False)
         self.ctrl.append(self.net.controller)
-        self.nodes = self.net.nodes 
+        self.nodes = self.net.nodes
         self.home_id = self.net.home_id
         self.net.start()
-
 

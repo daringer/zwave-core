@@ -1,6 +1,12 @@
+import os
 import functools
 from enum import IntEnum
 import urllib
+from time import time 
+
+import eventlet
+from eventlet.queue import Queue, Empty, Full
+from threading import Thread, Lock
 
 from flask import Flask, jsonify, request, Response
 from flask_restful import Resource, Api
@@ -8,66 +14,73 @@ from flask_restful import reqparse
 from flask import abort
 from flask import url_for
 
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room, leave_room
+#import socketio as SocketIO
 
 from jinja2 import Template, Environment, PackageLoader, select_autoescape, BaseLoader
-
-
-#import openzwave
-#from openzwave.node import ZWaveNode
-#from openzwave.value import ZWaveValue
-#from openzwave.scene import ZWaveScene
-#from openzwave.controller import ZWaveController
-#from openzwave.network import ZWaveNetwork
-#from openzwave.option import ZWaveOption
-
-#from pydispatch import dispatcher
 
 ###### own
 from parsers import opt_parse
 
-#from signals import net_signals
-
 from zwave_cls import ZWave
 
+from enums import NetState
+from utils import get_member
 
 name = "Z-WaveCentral"
 
-app = Flask(name) # __name__
+app = Flask(__name__) # __name__
 api = Api(app)
 
-app.config['SECRET_KEY'] = "meissna_geheim"
-socketio = SocketIO(app)
+#app.config['SECRET_KEY'] = "meissna_geheim"
 
-# 
+socketio = SocketIO(app, async_mode="eventlet")
+
+#SocketIO.
+#socketio = SocketIO.AsyncServer(async_mode="aiohttp")
+#socketio = SocketIO(app, async_mode="threading")
+#socketio = SocketIO(app, async_mode="gevent")
+
+@app.after_request
+def no_caching_header(r):
+    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    r.headers["Pragma"] = "no-cache"
+    r.headers["Expires"] = "0"
+    r.headers['Cache-Control'] = 'public, max-age=0'
+    return r
+
 #def api_route(self, *args, **kwargs):
 #    def wrapper(cls):
 #        self.add_resource(cls, *args, **kwargs)
 #        return cls
 #    return wrapper
 
-###
-### socket-io -> websocket for signal-triggered browser updates
-###
 
-#@socketio.on("foo", namespace="/websocket")
-#def event_msg(message):
-#    emit("event_msg", {"data": message["data"]})
-
-#@socketio.on("my broadcast event", namespace="/test")
-#def test_message(message):
-#    emit("my response", {"data": message["data"]}, broadcast=True)
-
+thread = None
+thread_lock = Lock()
 @socketio.on("connect", namespace="/websocket")
-def test_connect():
-    #emit("my response", {"data": "Connected"})
-    pass
+def io_connect():
+    emit("message", {"msg": "Hello World"}, namespace="/websocket") #oom="ficken", broadcast=True)
+
+    def consume_queue():
+        global sig_queue 
+        while True:
+            try:
+                item = sig_queue.get(timeout=5)
+                socketio.send(item, namespace="/websocket") #, broadcast=True)
+                #print ("SENT EVENT: " + str(item))
+            except Empty:
+                continue
+    global thread
+    with thread_lock:
+        if thread is None:
+            thread = socketio.start_background_task(consume_queue)
+    return True
 
 @socketio.on("disconnect", namespace="/websocket")
-def test_disconnect():
-    #print("Client disconnected")
-		pass
-
+def io_disconnect():
+    emit("message", {"msg": "Goodbye World"}, namspace="/websocket")
+    return True
 
 ###
 ### Error handling
@@ -90,8 +103,6 @@ def not_ready(error):
 def no_controller(error):
     return jsonify({"error": 415, "message": "no controller found"})
 
-
-
 ### woho, brain-shrinking 8-liner:
 ### wrapping decorator alias its arguments based on the decorating method/alias name
 class _rest:
@@ -105,62 +116,52 @@ class _rest:
       return func
 rest = _rest()
 
-
-
 #def abort_unknown_uid(ctrl_uid):
 #    abort(404, message="Todo {} doesn't exist".format(todo_id))
+#def build_dct_from(obj, names):
+#  return dict( (name, getattr(obj, name)) for name in names )
 
-def build_dct_from(obj, names):
-  return dict( (name, getattr(obj, name)) for name in names )
-
-class NetState(IntEnum):
-    stopped   = 0
-    failed    = 1
-    resetted  = 3
-    started   = 5
-    awaked    = 7
-    ready     = 10
-
-def get_member(src, attr_name, args):
-    obj = getattr(src, attr_name)
-    if callable(obj):
-        kw = {}
-        for key, val in args.items():
-            if val.startswith("[int]"):
-                kw[key] = int(val[5:])
-            elif val.startswith("[float]"):
-                kw[key] = float(val[7:])
-            elif val.startswith("[bool]"):
-                kw[key] = val[6:].lower() == "true"
-            else:
-                kw[key] = val
-        return obj(**kw)
-    return obj
-
-zwave = ZWave(abort)
-
+sig_queue = Queue()
+def default_signal_handler(sender, signal, *v, **kw):
+    #print("DEFAULT HANDLER", signal, v, kw)
+    global sig_queue
+    while True:
+        try:
+            x = {"stamp": time(), "sender": str(sender), "event_type": signal}
+            if "node" in kw:
+                x["node_id"] = kw["node"].node_id
+            if "value" in kw:
+                x["value"] = kw["value"].data
+                x["value_id"] = kw["value"].value_id
+            sig_queue.put(x, timeout=5)
+            break
+        except Full:
+            continue
+    return True
 
 ###
-### webpage(s)
-### 
+### (web)page(s)
+###
 
-@rest.get("/get_emit")
-def myemit():
-    emit("event_msg", "hello my websocket mesage")
+@app.route("/static/<string:path>")
+@app.route("/static/js/<string:path>")
+def frontend_static(path):
+    #print(path)
+    if not os.path.exists(path):
+      if not os.path.exists("js/" + path):
+        abort(404)
+      else:
+        path = "js/" + path
 
+    with open(path) as fd:
+        data = fd.read()
 
-
-@app.route("/frontend/css/<string:name>")
-def frontend_css(name):
-    with open("{}.css".format(name)) as fd:
-        tmpl = Environment(loader=BaseLoader).from_string(fd.read())
-    return Response(tmpl.render(), mimetype="text/css")
-
-@app.route("/frontend/js/<string:name>")
-def frontend_js(name):
-    with open("js/{}.js".format(name)) as fd:
-        tmpl = Environment(loader=BaseLoader).from_string(fd.read())
-    return Response(tmpl.render(), mimetype="text/javascript")
+    if path.endswith(".js") or path.endswith(".map"):
+        return Response(data, mimetype="text/javascript")
+    elif path.endswith(".css"):
+        return Response(data, mimetype="text/css")
+    else:
+        return Response(data, mimetype="text/plain")
 
 @app.route("/frontend")
 def frontend():
@@ -186,26 +187,30 @@ class Options(Resource):
         zwave.clear_options()
         return {"options-state": "empty",    "options": dict(zwave.raw_opts.items()) }
 
-#@rest.get("/toc")
-#def list_routes():
-#    output = []
-#    for rule in app.url_map.iter_rules():
-#
-#        options = {}
-#        for arg in rule.arguments:
-#            print (arg)
-#            options[arg] = "[{}]".format(arg)
-#        
-#        methods = ','.join(rule.methods)
-#        url = url_for(rule.endpoint, **options)
-#        line = urllib.parse.unquote("{:<35s} {:<40s} {:<20s}". \
-#            format(url, methods, rule.endpoint))
-#        output.append(line)
-#    return jsonify(list(sorted(output)))
+###
+### "Table of contents"
+###
 
-####
-#### NETWORK
-####
+@rest.get("/toc")
+def list_routes():
+    output = []
+    for rule in app.url_map.iter_rules():
+        options = {}
+        for arg in rule.arguments:
+            if arg in ["num", "node_id", "value_id"]:
+                options[arg] = 123
+            else:
+                options[arg] = arg
+        methods = ','.join(rule.methods)
+        url = url_for(rule.endpoint, **options)
+        line = urllib.parse.unquote("{:<35s} {:<40s} {:<20s}". \
+            format(url, methods, rule.endpoint))
+        output.append(line)
+    return jsonify(list(sorted(output)))
+
+###
+### NETWORK
+###
 @rest.get("/net/signals")
 def list_signals():
     from signals import net_signals
@@ -225,13 +230,13 @@ def netinfo():
 def netaction(member):
     if (zwave.net is None and member != "start") and not hasattr(zwave.net, member):
         abort(404)
-  
+
     ret = zwave.start() if member == "start" else \
         get_member(zwave.net, member, request.args)
-    
+
     if zwave.net is None:
       abort(414)
-  
+
     return jsonify({"returned": ret,
         "network-state": NetState(zwave.net.state).name,
         "executed-member": member,
@@ -241,13 +246,12 @@ def netaction(member):
 def available_net_actions():
     if (zwave.net is None and member != "start") and not hasattr(zwave.net, member):
         abort(404)
-  
+
     if zwave.net is None:
       abort(414)
-    
-    return jsonify(["heal", "start", "stop", "home_id", "is_ready", "nodes_count", "get_scenes", 
-        "scenes_count", "test", "sleeping_nodes_count", "state", "write_config"])
 
+    return jsonify(["heal", "start", "stop", "home_id", "is_ready", "nodes_count", "get_scenes",
+        "scenes_count", "test", "sleeping_nodes_count", "state", "write_config"])
 
 @rest.get("/net/ctrl/actions")
 def available_ctrl_actions(ctrl_idx=0):
@@ -257,10 +261,10 @@ def available_ctrl_actions(ctrl_idx=0):
     if not zwave.net:
         abort(414)
 
-    return jsonify(["start", "stop", "add_node", "assign_return_route", "cancel_command", 
-            "capabilities", "device", "is_primary_controller", "library_config_path", 
-            "library_description", "library_type_name", "library_user_path", "library_version", 
-            "name", "node", "node_id", "options", "owz_library_version", 
+    return jsonify(["start", "stop", "add_node", "assign_return_route", "cancel_command",
+            "capabilities", "device", "is_primary_controller", "library_config_path",
+            "library_description", "library_type_name", "library_user_path", "library_version",
+            "name", "node", "node_id", "options", "owz_library_version",
             "python_library_config_version", "stats"])
 
 @rest.post("/net/ctrl/action/<string:member>")
@@ -274,9 +278,9 @@ def ctrlaction(member, ctrl_idx=0):
         abort(404)
 
     ret = get_member(ctrl, member, request.args)
-    if isinstance(ret, set): 
+    if isinstance(ret, set):
         ret = list(sorted(ret))
-    return jsonify({"returned": ret, 
+    return jsonify({"returned": ret,
         "ctrl-name": ctrl.name,
         "executed-action": member,
         "controller": ctrl.to_dict()})
@@ -284,20 +288,19 @@ def ctrlaction(member, ctrl_idx=0):
 @rest.get("/nodes")
 def nodelist():
     if not zwave.net:
-        abort(414)       
-    return jsonify([[
-            { "node_id": nid, "name": node.name, "product_type": node.product_type, 
-              "product_name": node.product_name }
-        ] for nid, node in zwave.net.nodes.items() ] )
-
+        abort(414)
+    return jsonify([
+        [{ "node_id": nid, "name": node.name, "product_type": node.product_type, "product_name": node.product_name }] \
+                for nid, node in zwave.net.nodes.items() ])
 
 @rest.get("/node/<int:node_id>/values")
 def node_values(node_id):
     return jsonify(zwave[node_id].values_to_dict())
 
 class Node(Resource):
-    def get(self, node_id):      
+    def get(self, node_id):
         return dict(zwave[node_id].to_dict())
+
     def patch(self, node_id):
         node = zwave[node_id]
         for key, val in request.args.items():
@@ -314,10 +317,13 @@ class Node(Resource):
 class NodeConfig(Resource):
     def get(self, node_id):
         return dict(zwave[node_id].to_dict())
+
     def patch(self, node_id):
         return dict(zwave[node_id].to_dict())
+
     def post(self, node_id):
         return dict(zwave[node_id].to_dict())
+
     def delete(self, node_id):
         return dict(zwave[node_id].to_dict())
 
@@ -327,11 +333,25 @@ class NodeValue(Resource):
     def post(self, node_id, value_id):
         return zwave[node_id].values_to_dict()[value_id]
 
-api.add_resource(Options,          "/net/opts")
-api.add_resource(Node,             "/node/<int:node_id>")
-api.add_resource(NodeConfig,       "/node/<int:node_id>/config")
-api.add_resource(NodeValue,        "/node/<int:node_id>/value/<int:value_id>")
+api.add_resource(Options,      "/net/opts")
+api.add_resource(Node,         "/node/<int:node_id>")
+api.add_resource(NodeConfig,   "/node/<int:node_id>/config")
+api.add_resource(NodeValue,    "/node/<int:node_id>/value/<int:value_id>")
+
+zwave = ZWave(abort, default_signal_handler)
 
 if __name__ == '__main__':
+    ####### regular
     #app.run(debug=True)
-    socketio.run(app, debug=True)
+
+    ####### eventlet
+    app.debug = True
+    socketio.run(app, host="127.0.0.1", port=5000, debug=True)
+
+    ####### aiohttp
+    #socketio.attach(app)
+    #app.run(debug=True)
+
+    ####### eventlet Middleware
+    #app = socketio.Middleware(sio)
+    #eventlet.wsgi.server(eventlet.listen(('', 8000)), app)

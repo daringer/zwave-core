@@ -15,6 +15,14 @@ input, button, label {
 	float: left;
 }
 
+#node_grid  {
+    font-size: 0.8em;
+}
+
+#event_grid  {
+    font-size: 0.75em;
+}
+
 #init_device, .ui-controlgroup-vertical > .ui-controlgroup-item, #device_path { 
   text-align: center; 
 }
@@ -23,6 +31,7 @@ input, button, label {
   margin-top: 0.25em;
   font-weight: bold;
   font: 600 1em Helvetica;
+  margin-bottom: 0.25em;
 }
 
 #init_device:hover {
