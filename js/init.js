@@ -1,3 +1,5 @@
+"use strict";
+
 function DumpObject(obj, descent=false) {
     var od = new Object;
     var result = "";
@@ -35,18 +37,21 @@ function DumpObject(obj, descent=false) {
 };*/
 
 function get_nodes() {
+    var node_count = 0;
     generic_ajax("GET", "/nodes", {}, function(res) {
         add_event(Date.now(), "Retrieving all nodes from server...");
         console.log(res);
-        for (var item  in res) {
+        for (var item in res) {
             //var value = obj[property];
-            add_node(zwave[item.node_id]);
+            add_node(item);
         }
+        node_count = res.length;
     });
+    return node_count;
 };
 
 function add_event(stamp, text, event_type) {
-    d = new Date(stamp);
+    var d = new Date(stamp);
     if (event_type == null)
         event_type = "Info Message";
 	return $("#event_grid").jsGrid("insertItem", {
@@ -62,11 +67,16 @@ function add_event(stamp, text, event_type) {
 
 function add_node(node) {
     return $("#node_grid").jsGrid("insertItem", {
-        "NodeID": node.node_id,
-        "Name": node.name,
-        "Location": node.location, 
-        "Product Name": node.product_name, 
-        "Manufacturer Name": node.manufacturer_name
+        "node_id": node.node_id,
+        "name": node.name,
+        "location": node.location, 
+        "type": node.type, 
+        "specific": node.specific, 
+        "product_name": node.product_name, 
+        "product_type": node.product_type, 
+        "product_id": node.product_id, 
+        "manufacturer_name": node.manufacturer_name,
+        "manufacturer_id": node.manufacturer_id
     });
 };
 
@@ -105,12 +115,24 @@ function set_init_button(show_init) {
     if(show_init) {
         inp.prop("disabled", false);
  	    but.html("init device");
+        //gob.inited = false;
     } else {
  	    inp.prop("disabled", true);
  	    but.html("close device");
+        //gob.inited = true;
+        //gob.num_nodes = get_nodes();
     }
 };
 
+// gob == Global State Object
+var gob = {
+    // controller initilized?
+    inited: false,
+    // number of nodes
+    num_nodes: 0,
+    // maybe a container for often needed (dom)-elements?
+    elems: {},
+};
 
 $( function() {
  	var inp = $("#device_path");
@@ -122,12 +144,12 @@ $( function() {
     var socket = io.connect("http://127.0.0.1:5000/websocket", {"transports": ["websocket"]}); 
     // + document.domain + ":" + location.port + "/websocket"); //, {"transports": ["websocket"] });
 
-  socket.on('connect',    function()     {       add_event(Date.now(), "Websocket connected..."); });
-  socket.on('disconnect', function()     {       add_event(Date.now(), "Websocket disconnected..."); });
-  socket.on("message",  function(data) {    
+  socket.on('connect',    function()     {       add_event(Date.now(), "Websocket connected successfully"); });
+  socket.on('disconnect', function()     {       add_event(Date.now(), "Websocket disconnected successfuly"); });
+  socket.on("message",    function(data) {    
 		console.log(data);
         if (data.stamp) {
-          txt = (data.sender == "_Anonymous") ? "" : ("<b>From:</b> " + data.sender);
+          var txt = (data.sender == "_Anonymous") ? "" : ("<b>From:</b> " + data.sender);
           if (data.node_id)
             txt += " <b>NodeID:</b> " + data.node_id;
           if (data.value || data.value_id)
@@ -135,13 +157,13 @@ $( function() {
   		  add_event(data.stamp*1000, txt, data.event_type);
         } else
           add_event(Date.now(), data.msg);
-	});
+  });
 
- 	$( "#menu" ).menu({
+  $( "#menu" ).menu({
          select: function( event, ui ) {
- 				 cmd = ui.item[0].firstChild.innerText;
- 				}
- 		});
+ 				 var cmd = ui.item[0].firstChild.innerText;
+         }
+  });
  	
   $( "#startup" ).controlgroup();
   $( "#startup" ).controlgroup({"direction": "vertical"});
@@ -156,7 +178,17 @@ $( function() {
   });
 
   generic_ajax("POST", "/net/ctrl/action/device", {}, function(res) {
-    set_init_button(res.error == undefined || res.state == 0);
+    if (typeof res.error !== "undefined")
+      set_init_button(true);
+    else if(typeof res.state !== "undefined" && res.state == 0)
+      set_init_button(true);
+    else
+      set_init_button(false);
   });
+
+  /*if (gob.inited) {
+    sleep(10);
+    get_nodes();
+  }*/
 
 });
