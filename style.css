@@ -35,7 +35,7 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 }
 
 .ui-controlgroup-vertical > .ui-controlgroup-item {
-  margin-top: 0.25em;
+  margin-top: 10px;
   font-weight: bold;
   font: 600 1em Helvetica;
 }
@@ -91,6 +91,24 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
   display: inline-block;
   height: 32px;
 }
+
+.container_box {
+    height: 131px;
+    width: 16px;
+    /*transform: rotate(-90deg);
+	transform-origin: right bottom 0;*/
+	background-color: #767676;
+    float:left;
+    display: block;
+    border: 1px solid #454545;
+    margin-top: 4px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    text-align: center;
+}
+
 
 
 /*#log_generic {  width: 78px; }

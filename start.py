@@ -1,38 +1,38 @@
-import eventlet
-from eventlet.semaphore import Semaphore as Lock
-from eventlet.queue import Queue, Empty, Full
-
-import os
 import functools
-from enum import IntEnum
+import os
 import urllib
-from time import time 
+from enum import IntEnum
+from time import time
 from uuid import uuid4
+
+import eventlet
+from eventlet.queue import Empty, Full, Queue
+from eventlet.semaphore import Semaphore as Lock
+from flask import Flask, Response, abort, jsonify, request, url_for
+from flask_restful import Api, Resource, reqparse
+from flask_socketio import SocketIO, emit, send
+from jinja2 import (BaseLoader, Environment, PackageLoader, Template,
+                    select_autoescape)
+
+from enums import NetState
+###### own
+from parsers import opt_parse
+from zwave_cls import ZWave, get_member
+
 #import eventlet
 #from eventlet.queue import Queue, Empty, Full
 #from threading import Thread, Lock
 
-from flask import Flask, jsonify, request, Response
-from flask_restful import Resource, Api
-from flask_restful import reqparse
-from flask import abort
-from flask import url_for
 
-from flask_socketio import SocketIO, emit, send
 #import socketio as SocketIO
 
-from jinja2 import Template, Environment, PackageLoader, select_autoescape, BaseLoader
 
-###### own
-from parsers import opt_parse
 
-from zwave_cls import ZWave, get_member
 
-from enums import NetState
 
 name = "Z-WaveCentral"
 
-app = Flask(__name__) # __name__
+app = Flask(__name__)  # __name__
 api = Api(app)
 
 #app.config['SECRET_KEY'] = "meissna_geheim"
@@ -58,67 +58,84 @@ socketio = SocketIO(app, async_mode="eventlet")
 #        return cls
 #    return wrapper
 
-
 thread = None
 thread_lock = Lock()
+
+
 @socketio.on("connect", namespace="/websocket")
 def io_connect():
     #emit("message", {"msg": "Hello World"}, namespace="/websocket") #oom="ficken", broadcast=True)
-    emit("message", {"msg": "Hello World (from websocket server)"}, namespace="/websocket") #oom="ficken", broadcast=True)
+    emit(
+        "message", {"msg": "Hello World (from websocket server)"},
+        namespace="/websocket")  #oom="ficken", broadcast=True)
 
     def consume_queue():
-        global sig_queue 
+        global sig_queue
         while True:
             try:
                 item = sig_queue.get(timeout=5)
-                socketio.send(item, namespace="/websocket") #, broadcast=True)
+                socketio.send(item, namespace="/websocket")  #, broadcast=True)
                 #print ("SENT EVENT: " + str(item))
             except Empty:
                 continue
+
     global thread
     with thread_lock:
         if thread is None:
             thread = socketio.start_background_task(consume_queue)
     return True
 
+
 @socketio.on("disconnect", namespace="/websocket")
 def io_disconnect():
     #emit("message", {"msg": "Goodbye World"}, namspace="/websocket")
-    emit("message", {"msg": "Goodbye World (from websocket server)"}, namspace="/websocket")
+    emit(
+        "message", {"msg": "Goodbye World (from websocket server)"},
+        namspace="/websocket")
     return True
+
 
 ###
 ### Error handling
 ### @todo: find some neat scheme to have consistent error-handlers
 ###
 
+
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({"error": 404, "message": "not found", "url": request.url})
+
 
 @app.errorhandler(403)
 def not_allowed(error):
     return jsonify({"error": 403, "message": "not allowed"})
 
+
 @app.errorhandler(414)
 def not_ready(error):
     return jsonify({"error": 414, "message": "not ready"})
+
 
 @app.errorhandler(415)
 def no_controller(error):
     return jsonify({"error": 415, "message": "no controller found"})
 
+
 ### woho, brain-shrinking 8-liner:
 ### wrapping decorator alias its arguments based on the decorating method/alias name
 class _rest:
-  def __getattr__(self, key):
-      return self._wrap(key)
-  def _wrap(self, method):
-      @functools.wraps(app.route)
-      def func(*v, **kw):
-          kw["methods"] = [method.upper()]
-          return app.route(*v, **kw)
-      return func
+    def __getattr__(self, key):
+        return self._wrap(key)
+
+    def _wrap(self, method):
+        @functools.wraps(app.route)
+        def func(*v, **kw):
+            kw["methods"] = [method.upper()]
+            return app.route(*v, **kw)
+
+        return func
+
+
 rest = _rest()
 
 #def abort_unknown_uid(ctrl_uid):
@@ -129,10 +146,17 @@ rest = _rest()
 #### @TODO: those two here have NOOO limits in size!!!! @FIXME
 sig_queue = Queue()
 sig_archive = {}
+
+
 def default_signal_handler(sender, signal, *v, **kw):
     #print("DEFAULT HANDLER", signal, v, kw)
     global sig_queue, sig_archive
-    x = {"stamp": time(), "sender": str(sender), "event_type": signal, "uuid": uuid4().int}
+    x = {
+        "stamp": time(),
+        "sender": str(sender),
+        "event_type": signal,
+        "uuid": uuid4().int
+    }
     while True:
         try:
             if "node" in kw:
@@ -147,19 +171,21 @@ def default_signal_handler(sender, signal, *v, **kw):
             continue
     return True
 
+
 ###
 ### (web)page(s)
 ###
+
 
 @app.route("/static/<string:path>")
 @app.route("/static/js/<string:path>")
 def frontend_static(path):
     #print(path)
     if not os.path.exists(path):
-      if not os.path.exists("js/" + path):
-        abort(404)
-      else:
-        path = "js/" + path
+        if not os.path.exists("js/" + path):
+            abort(404)
+        else:
+            path = "js/" + path
 
     with open(path) as fd:
         data = fd.read()
@@ -171,36 +197,53 @@ def frontend_static(path):
     else:
         return Response(data, mimetype="text/plain")
 
+
 @app.route("/frontend")
 def frontend():
     with open("frontend.html") as fd:
         tmpl = Environment(loader=BaseLoader).from_string(fd.read())
     return tmpl.render()
 
+
 ###
 ### options
 ###
 
+
 class Options(Resource):
-	def get(self):
-		return {"options": dict(zwave.raw_opts.items()) }	
-	def patch(self):
-		zwave.update_options(opt_parse.parse_args(strict=True))
-		return {"options-state": "editable", "options": dict(zwave.raw_opts.items()) }
-	def post(self):
-		zwave.update_options(opt_parse.parse_args(strict=True))
-		ret = zwave.set_options()
-		if "ok" in ret:
-			return {"options-state": "locked",   "options": dict(zwave.raw_opts.items()) }
-		else:
-			abort(404)
-	def delete(self):
-		zwave.clear_options()
-		return {"options-state": "empty",    "options": dict(zwave.raw_opts.items()) }
+    def get(self):
+        return {"options": dict(zwave.raw_opts.items())}
+
+    def patch(self):
+        zwave.update_options(opt_parse.parse_args(strict=True))
+        return {
+            "options-state": "editable",
+            "options": dict(zwave.raw_opts.items())
+        }
+
+    def post(self):
+        zwave.update_options(opt_parse.parse_args(strict=True))
+        ret = zwave.set_options()
+        if "ok" in ret:
+            return {
+                "options-state": "locked",
+                "options": dict(zwave.raw_opts.items())
+            }
+        else:
+            abort(404)
+
+    def delete(self):
+        zwave.clear_options()
+        return {
+            "options-state": "empty",
+            "options": dict(zwave.raw_opts.items())
+        }
+
 
 ###
 ### "Table of contents"
 ###
+
 
 @rest.get("/toc")
 def list_routes():
@@ -215,9 +258,10 @@ def list_routes():
         methods = ','.join(rule.methods)
         url = url_for(rule.endpoint, **options)
         line = urllib.parse.unquote("{:<35s} {:<40s} {:<20s}". \
-            format(url, methods, rule.endpoint))
+                                    format(url, methods, rule.endpoint))
         output.append(line)
     return jsonify(list(sorted(output)))
+
 
 ###
 ### NETWORK
@@ -227,9 +271,12 @@ def list_signals():
     from signals import net_signals
     return jsonify(net_signals)
 
+
 @rest.get("/net/signals/latest/<int:num>")
 def latest_signals(num):
-    return jsonify(list(map(lambda x: (x[0], str(x[1]), x[2]), zwave.signals[-num:])))
+    return jsonify(
+        list(map(lambda x: (x[0], str(x[1]), x[2]), zwave.signals[-num:])))
+
 
 @rest.get("/net")
 def netinfo():
@@ -237,32 +284,42 @@ def netinfo():
         abort(414)
     return jsonify(zwave.net.to_dict())
 
+
 @rest.post("/net/action/<string:member>")
 def netaction(member):
-    if (zwave.net is None and member != "start") and not hasattr(zwave.net, member):
+    if (zwave.net is None
+            and member != "start") and not hasattr(zwave.net, member):
         abort(404)
 
     ret = zwave.start() if member == "start" else \
         get_member(zwave.net, member, request.args)
 
     if zwave.net is None:
-      abort(414)
+        abort(414)
 
-    return jsonify({"returned": ret,
+    return jsonify({
+        "returned": ret,
         "network-state": NetState(zwave.net.state).name,
         "executed-member": member,
-        "network": zwave.net.to_dict()})
+        "network": zwave.net.to_dict()
+    })
+
 
 @rest.get("/net/actions")
 def available_net_actions():
-    if (zwave.net is None and member != "start") and not hasattr(zwave.net, member):
+    if (zwave.net is None
+            and member != "start") and not hasattr(zwave.net, member):
         abort(404)
 
     if zwave.net is None:
-      abort(414)
+        abort(414)
 
-    return jsonify(["heal", "start", "stop", "home_id", "is_ready", "nodes_count", "get_scenes",
-        "scenes_count", "test", "sleeping_nodes_count", "state", "write_config"])
+    return jsonify([
+        "heal", "start", "stop", "home_id", "is_ready", "nodes_count",
+        "get_scenes", "scenes_count", "test", "sleeping_nodes_count", "state",
+        "write_config"
+    ])
+
 
 @rest.get("/net/ctrl/actions")
 def available_ctrl_actions(ctrl_idx=0):
@@ -272,11 +329,15 @@ def available_ctrl_actions(ctrl_idx=0):
     if not zwave.net:
         abort(414)
 
-    return jsonify(["start", "stop", "add_node", "assign_return_route", "cancel_command",
-            "capabilities", "device", "is_primary_controller", "library_config_path",
-            "library_description", "library_type_name", "library_user_path", "library_version",
-            "name", "node", "node_id", "options", "owz_library_version",
-            "python_library_config_version", "stats"])
+    return jsonify([
+        "start", "stop", "add_node", "assign_return_route", "cancel_command",
+        "capabilities", "device", "is_primary_controller",
+        "library_config_path", "library_description", "library_type_name",
+        "library_user_path", "library_version", "name", "node", "node_id",
+        "options", "owz_library_version", "python_library_config_version",
+        "stats"
+    ])
+
 
 @rest.post("/net/ctrl/action/<string:member>")
 def ctrlaction(member, ctrl_idx=0):
@@ -291,10 +352,13 @@ def ctrlaction(member, ctrl_idx=0):
     ret = get_member(ctrl, member, request.args)
     if isinstance(ret, set):
         ret = list(sorted(ret))
-    return jsonify({"returned": ret,
+    return jsonify({
+        "returned": ret,
         "ctrl-name": ctrl.name,
         "executed-action": member,
-        "controller": ctrl.to_dict()})
+        "controller": ctrl.to_dict()
+    })
+
 
 @rest.get("/nodes")
 def nodelist():
@@ -302,13 +366,15 @@ def nodelist():
         abort(414)
     return jsonify(
         [{ "node_id": nid, "name": node.name, "location": node.location, "type": node.type, "specific": node.specific, \
-            "product_name": node.product_name, "product_type": node.product_type, "product_id": node.product_id, \
+           "product_name": node.product_name, "product_type": node.product_type, "product_id": node.product_id, \
             "manufacturer_name": node.manufacturer_name, "manufacturer_id": node.manufacturer_id } \
-                for nid, node in zwave.net.nodes.items() ])
+         for nid, node in zwave.net.nodes.items() ])
+
 
 @rest.get("/node/<int:node_id>/values")
 def node_values(node_id):
     return jsonify(zwave[node_id].values_to_dict())
+
 
 class Node(Resource):
     def get(self, node_id):
@@ -317,15 +383,19 @@ class Node(Resource):
     def patch(self, node_id):
         node = zwave[node_id]
         for key, val in request.args.items():
-            if key in ["name", "location", "product_name", "manufacturer_name"]:
+            if key in [
+                    "name", "location", "product_name", "manufacturer_name"
+            ]:
                 node.set_field(key, val)
             else:
                 abort(403)
         return dict(node.to_dict())
+
     #def post(self, node_id):
     #    return dict(zwave[node_id])
     #def delete(self, node_id):
     #    return dict(zwave[node_id])
+
 
 class NodeConfig(Resource):
     def get(self, node_id):
@@ -340,16 +410,19 @@ class NodeConfig(Resource):
     def delete(self, node_id):
         return dict(zwave[node_id].to_dict())
 
+
 class NodeValue(Resource):
     def get(self, node_id, value_id):
         return zwave[node_id].values_to_dict()[value_id]
+
     def post(self, node_id, value_id):
         return zwave[node_id].values_to_dict()[value_id]
 
-api.add_resource(Options,      "/net/opts")
-api.add_resource(Node,         "/node/<int:node_id>")
-api.add_resource(NodeConfig,   "/node/<int:node_id>/config")
-api.add_resource(NodeValue,    "/node/<int:node_id>/value/<int:value_id>")
+
+api.add_resource(Options, "/net/opts")
+api.add_resource(Node, "/node/<int:node_id>")
+api.add_resource(NodeConfig, "/node/<int:node_id>/config")
+api.add_resource(NodeValue, "/node/<int:node_id>/value/<int:value_id>")
 
 zwave = ZWave(abort, default_signal_handler)
 
@@ -368,3 +441,4 @@ if __name__ == '__main__':
     ####### eventlet Middleware
     #app = socketio.Middleware(sio)
     #eventlet.wsgi.server(eventlet.listen(('', 8000)), app)
+
