@@ -1,7 +1,7 @@
 from openzwave.network import ZWaveNetwork
 
 
-### SIGNAL NAME                                      HANDLER (callable)   
+### SIGNAL NAME                                      HANDLER (callable)
 net_signals = [
     (ZWaveNetwork.SIGNAL_NETWORK_FAILED,                    None,         ), #   NetworkFailed
     (ZWaveNetwork.SIGNAL_NETWORK_STARTED,                   None,         ), #   NetworkStarted

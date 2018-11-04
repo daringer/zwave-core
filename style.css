@@ -1,15 +1,24 @@
-input, button, label {
-	font: 600 0.75em Helvetica;
+body {
+	font: 1em Helvetica;
 }
-
 
 input:focus { color: #454545; }
 
-input, .ui-controlgroup-halfbutton, .ui-button, .ui-corner-button {
+hr {
+	height: 1px;
+	margin: 0;
+	margin-top: 4px;
+	margin-bottom: 8px;
+  border-style: groove;
+}
+
+.ui-controlgroup-halfbutton, .ui-button, .ui-corner-button {
 	background-color: #f6f6f6;
 	padding-top: 6px;
-    padding-bottom: 6px;
-    height: 18px;
+  padding-bottom: 6px;
+  height: 18px;
+	font-size: 0.55em;
+	font-weight: bold;
 }
 
 input:hover, .ui-controlgroup-halfbutton:hover, .ui-button:hover {
@@ -17,27 +26,111 @@ input:hover, .ui-controlgroup-halfbutton:hover, .ui-button:hover {
 }
 input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 	background-color: #dcdcdc;
-    color: #fafafa;
+  color: #fafafa;
+}
+
+#node_details input, #node_details select {
+	padding: 2px 4px 2px 4px;
+	margin: 0;
+	font-size: 0.7em;
+	border: 0;
+	background-color: #dddddd;
+	width: 242px;
+  height: 20px;
+}
+#node_details select {
+	/* select -> width+height -(minus!) padding (left/right) ... input not....*/
+	width: 250px;
+	height: 24px;
 }
 
 #node_grid  {
-    font-size: 0.8em;
-}
-
-#event_grid  {
     font-size: 0.75em;
 }
 
-.ui-controlgroup-vertical > .ui-controlgroup-item, #device_path, .ui-controlgroup-button, 
-.ui-controlgroup-label, .ui-text-input { 
+#event_grid  {
+    font-size: 0.5em;
+		float: right;
+}
 
-  text-align: center; 
+.node_details_box_header {
+	text-align: center;
+	width: 250px;
+	height: 22px;
+	padding: 0;
+	margin: 0;
+	padding-bottom: 5px;
+	background-color: #f6f6f6;
+	font-weight: 550;
+}
+
+.node_details_box {
+	float:left;
+}
+
+.val_data_label, .val_data_content, .val_data, .val_data_label_extra,
+.val_data_minmax, .val_data_extra_text, .group_data_label, .group_data_assoc,
+.action_node_link, .prop_data, .prop_data_content, .prop_data_label {
+	padding: 2px;
+	font: 0.75em Helvetica;
+}
+
+.group_data_box, .val_data_box, .prop_data_box, .action_data_box {
+	width: 250px;
+}
+
+.action_node_link, .action_node_link:visited {
+	text-align: left;
+	display: block;
+	width: 150px;
+	text-decoration: none;
+	color: black;
+	font-weight: bold;
+}
+
+.action_node_link:hover {
+	color: #000093;
+	font-weight: light;
+}
+
+.val_data_label, .group_data_label {
+	overflow-wrap: normal;
+	font-weight: 600;
+	width: 250px;
+}
+
+.prop_data_label {
+	float: left;
+	overflow-wrap: normal;
+	font-weight: 600;
+}
+
+.prop_data_box {
+	clear: both;
+}
+
+.val_data_label_extra {
+	float: right;
+}
+
+.prop_data {
+	float:right;
+	text-align: right;
+}
+
+.val_data_extra_text {
+	font-size: 0.65em;
+	color: #191919;
+	display: block;
+}
+
+
+.ui-controlgroup-vertical > .ui-controlgroup-item, #device_path, .ui-controlgroup-button,
+.ui-controlgroup-label, .ui-text-input {
+  text-align: center;
 }
 
 .ui-controlgroup-vertical > .ui-controlgroup-item {
-  margin-top: 10px;
-  font-weight: bold;
-  font: 600 1em Helvetica;
 }
 
 .top_path, #box_buttons_onoff, .top_box, #device_off, #device_on, .ui-text-halfinput {
@@ -46,7 +139,6 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 }
 
 .ui-controlgroup .ui-controlgroup-label span {
-  font-size: 100%;
   width: 156px;
 }
 
@@ -61,8 +153,16 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
   border-bottom-right-radius: 3px;
 }
 
-.lower_box {
-  width: 160px;
+.lower_box2 {
+  /*width: 160px;*/
+  padding: 0;
+  display: table;
+  table-layout: fixed;
+  border: 0;
+}
+
+.lower_box3 {
+  width: 240px;
   padding: 0;
   display: table;
   table-layout: fixed;
@@ -80,9 +180,9 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 .top_box {
 	margin-right: 0px;
 	float: left;
-	font: 600 1em Helvetica; 
-    margin-bottom: 0.75em;
-    margin-right: 0.225em;
+	font: 600 1em Helvetica;
+  margin-bottom: 0.75em;
+  margin-right: 0.225em;
 }
 
 .ui-controlgroup-halfbutton  {
@@ -91,6 +191,17 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
   display: inline-block;
   height: 32px;
 }
+
+.container3 {
+	height: 180px;
+	width: 240px;
+	float: left;
+	display: block;
+	overflow: auto;
+	margin: 0;
+	margin-top: 10px;
+}
+
 
 .container_box {
     height: 131px;
@@ -108,7 +219,6 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
     border-top-right-radius: 3px;
     text-align: center;
 }
-
 
 
 /*#log_generic {  width: 78px; }

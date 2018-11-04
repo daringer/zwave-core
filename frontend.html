@@ -15,66 +15,107 @@
 		<script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jsgrid/1.5.3/jsgrid.min.js"></script>
     <script type="text/javascript" src="/static/js/socket.io.dev.js"></script>
-   
+
     <script type="text/javascript" src="http://hacks.bluesmoon.info/strftime/strftime-min.js"></script>
 
     <link rel="stylesheet" href="/static/style.css" />
+
+    <script type="text/javascript" src="/static/js/utils.js"></script>
+    <script type="text/javascript" src="/static/js/node.js"></script>
+    <script type="text/javascript" src="/static/js/controller.js"></script>
+    <script type="text/javascript" src="/static/js/network.js"></script>
+    <script type="text/javascript" src="/static/js/ajax_manager.js"></script>
     <script type="text/javascript" src="/static/js/init.js"></script>
 
   </head>
-  <body>
-  	<div id="zwave_config_container">
-        <div id="config_box" class="container_box">C<br />o<br />n<br />f<br />i<br />g<!--guration--></div>
-        <div id="startup" class="top_box">
-  			<label for="device_path" class="ui-controlgroup-label">device path</label>
-				<input id="device_path" class="ui-text-input top_path" /> 
-            <label for="box_buttons_onoff" class="ui-controlgroup-label">network</label>
-            <div id="box_buttons_onoff" class="lower_box">
-		  	    <button id="device_on" class="ui-controlgroup-halfbutton">on</button>
-		      	<button id="device_off" class="ui-controlgroup-halfbutton">off</button>
-            </div>
+	<body>
+		<div class="container">
+		<div id="startup" class="top_box">
+			<label for="device_path" class="ui-controlgroup-label">device path</label>
+			<input id="device_path" class="ui-text-input top_path" />
+			<label for="box_buttons_onoff" class="ui-controlgroup-label">network</label>
+			<div id="box_buttons_onoff" class="lower_box2">
+				<button id="device_on" class="ui-controlgroup-halfbutton">on</button>
+				<button id="device_off" class="ui-controlgroup-halfbutton">off</button>
+			</div>
 		</div>
-        <div id="zwave_config_paths" class="top_box">
-  			<label for="config_path" class="ui-controlgroup-label">config path</label>
-				<input id="config_path" class="ui-text-input top_path" /> 
-  			<label for="user_path" class="ui-controlgroup-label">user path</label>
-				<input id="user_path" class="ui-text-input top_path" /> 
+		<div id="zwave_config_paths" class="top_box">
+			<label for="config_path" class="ui-controlgroup-label">config path</label>
+			<input id="config_path" class="ui-text-input top_path" />
+			<label for="user_path" class="ui-controlgroup-label">user path</label>
+			<input id="user_path" class="ui-text-input top_path" />
 		</div>
-        <div id="zwave_config_log" class="top_box">
-  			<label for="log_path" class="ui-controlgroup-label">log path</label>
-				<input id="log_path" class="ui-text-input top_path" /> 
-  			<label for="log_choice" class="ui-controlgroup-label">logging</label>
-            <div id="log_choice" class="lower_box">
-		  	    <button id="log_generic" class="ui-controlgroup-halfbutton">generic</button>
-		      	<button id="log_console" class="ui-controlgroup-halfbutton">stdout</button>
-            </div> 
+		<div id="zwave_config_log" class="top_box">
+			<label for="log_path" class="ui-controlgroup-label">log path</label>
+			<input id="log_path" class="ui-text-input top_path" />
+			<label for="log_choice" class="ui-controlgroup-label">logging</label>
+			<div id="log_choice" class="lower_box2">
+				<button id="log_generic" class="ui-controlgroup-halfbutton">generic</button>
+				<button id="log_console" class="ui-controlgroup-halfbutton">stdout</button>
+			</div>
 		</div>
-    </div>
-    <div id="zwave_ctrl_container">
-        <div id="ctrl_box" class="container_box">C<br />o<br />n<br />tf<br />r<br />gController</div>
-        <div id="zwave_ctrl_other" class="top_box">
-  			<label for="zwave_ctrl_inc" class="ui-controlgroup-label">controller</label>
-            <div id="zwave_ctrl_inc" class="lower_box">
-		  	    <button id="ctrl_include" class="ui-controlgroup-halfbutton">include</button>
-		      	<button id="ctrl_include_secure" class="ui-controlgroup-halfbutton">secure</button>
-            </div> 
-            <div id="zwave_ctrl_other_1" class="lower_box">
-		  	    <button id="ctrl_cancel" class="ui-controlgroup-halfbutton">cancel</button>
-		      	<button id="ctrl_remove" class="ui-controlgroup-halfbutton">exclude</button>
-            </div> 
-            <div id="zwave_ctrl_other_2" class="lower_box">
-		  	    <button id="ctrl_heal" class="ui-controlgroup-halfbutton">heal</button>
-		      	<button id="ctrl_remove_failed" class="ui-controlgroup-halfbutton">remove failed</button>
-            </div> 
+		</div><div class="container">
+			<!-- div id="ctrl_box" class="container_box">O<br />t<br />h<br />e<br />r</div -->
+			<div id="zwave_ctrl_other" class="top_box">
+				<label for="zwave_ctrl_inc" class="ui-controlgroup-label">controller</label>
+				<div id="zwave_ctrl_inc" class="lower_box3">
+					<button id="ctrl_include" class="ui-controlgroup-halfbutton">include</button>
+					<button id="ctrl_cancel" class="ui-controlgroup-halfbutton">cancel</button>
+					<button id="write_config" class="ui-controlgroup-halfbutton">write config</button>
+				</div>
+				<div id="zwave_ctrl_other_1" class="lower_box3">
+					<button id="ctrl_include_secure" class="ui-controlgroup-halfbutton">secure</button>
+					<button id="ctrl_exclude" class="ui-controlgroup-halfbutton">exclude</button>
+					<button id="ctrl_remove_failed" class="ui-controlgroup-halfbutton">remove failed</button>
+				</div>
+				<div id="zwave_ctrl_other_2" class="lower_box2">
+					<button id="ctrl_heal" class="ui-controlgroup-halfbutton">heal</button>
+					<button id="get_stats" class="ui-controlgroup-halfbutton">stats(s)</button>
+					<button id="ctrl_states" class="ui-controlgroup-halfbutton">state(s)</button>
+				</div>
+			</div>
+		</div><div class="container">
+  		<div id="event_grid"></div>
 		</div>
-    </div>
 
 		<br />
 		<div id="node_grid"></div>
 		<br />
-		<div id="event_grid"></div>
-		
-		<script type="text/javascript" src="/static/js/end.js"></script>
 
-</body>
+		<div id="node_details">
+			<fieldset id="node_details_user" class=node_details_box>
+				<div class="node_details_box_header">user values:</div>
+				<div id="node_details_user_content" class="node_details_box_content"></div>
+			</fieldset>
+			<fieldset id="node_details_system" class="node_details_box">
+				<div class="node_details_box_header">system values:</div>
+				<div id="node_details_system_content" class="node_details_box_content"></div>
+			</fieldset>
+			<fieldset id="node_details_config" class="node_details_box">
+				<div class="node_details_box_header">config values:</div>
+				<div id="node_details_config_content" class="node_details_box_content"></div>
+			</fieldset>
+			<fieldset id="node_details_groups" class="node_details_box">
+				<div class="node_details_box_header">groups:</div>
+				<div id="node_details_groups_content" class="node_details_box_content"></div>
+			</fieldset>
+			<fieldset id="node_details_basic" class=node_details_box>
+				<div class="node_details_box_header">basic values:</div>
+				<div id="node_details_basic_content" class="node_details_box_content"></div>
+			</fieldset>
+			<fieldset id="node_details_actions" class="node_details_box">
+				<div class="node_details_box_header">actions:</div>
+				<div id="node_details_actions_content" class="node_details_box_content"></div>
+			</fieldset>
+			<fieldset id="node_details_props" class="node_details_box">
+				<div class="node_details_box_header">properties:</div>
+				<div id="node_details_props_content" class="node_details_box_content"></div>
+			</fieldset>
+		</div>
+
+
+
+			<script type="text/javascript" src="/static/js/end.js"></script>
+
+	</body>
 </html>
