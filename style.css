@@ -91,6 +91,7 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 .action_node_link:hover {
 	color: #000093;
 	font-weight: light;
+	text-decoration: underline;
 }
 
 .val_data_label, .group_data_label {

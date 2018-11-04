@@ -16,8 +16,9 @@ class AjaxManager {
 		if (data && Object.keys(data).length > 0)
 			base_msg += " with data: " + DumpObject(data);
 		var log = this.log;
-		var func_success = this.generic_return_handler;
-		var func_error =  this.generic_error_handler;
+		var self = this;
+		var func_success = this.generic_return_handler.bind(self);
+		var func_error =  this.generic_error_handler.bind(self);
 		var err_func = function(ret) { return func_error(ret, url, log);	};
 
 		var ret = $.ajax({
@@ -116,7 +117,7 @@ class AjaxManager {
  	       to call all these from within the NodeManager */
 	  	if (!(node_id in gob.nodes))
   			gob.nodes[node_id] = new Node(node_id);
-	  	return gob.nodes[node_id]
+	  	return gob.nodes[node_id];
 	}
 
 	new_node(node) {

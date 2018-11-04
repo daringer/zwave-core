@@ -74,8 +74,40 @@ var IO = Object({
 	},
 
 	debug: function(data) {
-		console.log(data);
-		this.log(DumpObject(data, true), Date.now(), "unknown");
+		var _mydata = [];
+		if (typeof data === "object") {
+			var keys = Object.keys(data);
+			if (keys.length == 1 && keys[0] == "msg") {
+				this.log(data.msg);
+				return;
+			}
+			for (var key of keys) {
+			  if (key == "value") {
+
+				  if (data.value != null && "value_id" in data.value)
+	  				_mydata.push(`value_id: ${data.value.value_id}`);
+
+				  else if(data.value != null && "data" in data.value)
+  					_mydata.push(`value_data: ${data.value.data}`);
+
+			  } else if (key == "node" && data.node != null && "node_id" in data.node) {
+				  _mydata.push(`node_id: ${data.node.node_id}`);
+
+			  } else if (key != "event_type") {
+					if (data[key] == null)
+						_mydata.push(`${key}=null}`);
+					else
+						_mydata.push(`${key}=${data[key].toString()}`);
+				}
+			}
+			if ("args" in data && typeof args == "object") {
+				for (var arg_key of Object.keys(data.args)) {
+					if (data.args[arg_key] != null)
+					  _mydata.push(`arg: ${data.args[arg_key].toString()}`);
+				}
+			}
+		}
+		this.log(_mydata.join(", "), Date.now(), data.event_type);
 	}
 
 });

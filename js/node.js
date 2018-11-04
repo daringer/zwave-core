@@ -23,18 +23,18 @@ class Node {
 			return changed;
 		}
 
-		var old_data = this.values[value_id].data;
-		if (old_data != data) {
-			this.values[value_id].data = data;
-			if (this.values[value_id].data != data) {
-				IO.err(`set value not saved: '${data}', or not accepted, old: ${old_data}`);
-				return changed;
-			} else
-				IO.log(`verified newly set value: ${data}`);
+		var val = this.values[value_id];
+		if (val.data != data) {
+			//this.values[value_id].data = data;
+			val.data = data;
+			//@TODO: check for successful data set
+			//IO.err(`set value not saved: '${data}', or not accepted, old: ${old_data}`);
+			//return changed;
+			IO.log(`verified newly set value: ${data}`);
 			changed = true;
 			this.last_updated = Date.now();
 		} else
-			IO.warn(`to be set value: ${data} is equal to the old one, no changes done!`);
+			IO.warn(`new value-data: ${data} is equal to the old one, no changes done!`);
 
 		return changed;
 	}

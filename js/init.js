@@ -39,7 +39,7 @@ function add_node_action(node_id, act_id) {
   		<div class=action_node_link_box>
 		    <a href=# class=action_node_link id=${key}_link>${desc}</a>
 		  </div>
-		</div>`;
+		</div><hr>`;
 	$("#node_details_actions_content").append(html);
   $("#" + key + "_link").click({node_id: node_id, action: act_id}, function(ev) {
 		gob.manager.node_action(ev.data.node_id, ev.data.action);
@@ -274,33 +274,44 @@ $( function() {
 		gob.network.teardown();
 	});
 
+	// value is added to node, important for a perfect startup
+	$( document ).on("ZWave::ValueAdded", function(ev, data) {
+		console.log("ValueAdded NOT YET HANDLED!!!");
+	});
+
 	// node value changed sig-handler...
 	$( document ).on("ZWave::ValueChanged", function(ev, data) {
 
-		var node_id = data.node_id;
-		var value_id = data.value_id;
-		var new_data = data.data;
+    // Expected:
+    // - data.value (full dict)
+    // - data.node (full dict)
+    // - data.value.data (new to-be-set data)
+
+		var node = gob.manager.get_node(data.node.node_id);
+		var val = data.value;
+		var new_data = data.value.data;
 		// find 'someone' to be asked for all these ugly html-ids
 		// (maybe the buttons and inputs are not so bad at all)
-		var base_key = `#node_${node_id}_${value_id}`;
-		var data_key = base_key + "_data";
-		var node = gob.manager.get_node(node_id);
+		var base_id = `#node_${node.node_id}_${val.value_id}`;
+		var data_id = base_id + "_data";
 
 		// only fade grey, if no change, on change: fade to red
 		var to_col = "#ff0000";
-		if (!node.update_value(value_id, data.data))
+		if (!node.update_value(val.value_id, new_data))
 			to_col = "#666666";
 		else
-			$(data_key).val(val.data.toString());
+			$(data_id).val(new_data.toString());
+
+
+
 		// housekeeping
-		var bcol_base = $(base_key).css("background-color");
-		var bcol_data = $(data_key).css("background-color");
-		var both = `${base_key}, ${data_key}`;
-		// bling, bling - both at once...
-		$(both).animate({"background-color": to_col}, 200).
-				animate({"background-color": bcol_base}, 500);
-		//$(data_key).animate({"background-color": to_col}, 200).
-		//		animate({"background-color": bcol_data}, 500);
+		var bg_base = $(base_id).css("background-color");
+		var bg_data = $(data_id).css("background-color");
+		// bling, bling
+		$(base_id).animate({"background-color": to_col}, 200).
+				animate({"background-color": bg_base}, 500);
+		$(data_id).animate({"background-color": to_col}, 200).
+				animate({"background-color": bg_data}, 500);
 	});
 
 	// ---   Frontend triggered    ---
@@ -308,16 +319,17 @@ $( function() {
 	// handle user-based value change
 	$( document ).on("Frontend::ValueChanged", function(ev, data) {
 
-		var base_key = `#node_${data.node_id}_${data.value_id}`;
-		var data_key = base_key + "_data";
+		var base_id = `#node_${data.node_id}_${data.value_id}`;
+		var data_id = base_id + "_data";
 		var to_col = "#ff00ff";
-		var bcol_base = $(base_key).css("background-color");
-		var bcol_data = $(data_key).css("background-color");
-		var both = `${base_key}, ${data_key}`;
-		$(both).animate({"background-color": to_col}, 200).
-			animate({"background-color": bcol_base}, 500);
-  	//$(data_key).animate({"background-color": to_col}, 200).
-		//	animate({"background-color": bcol_data}, 500);
+		// housekeeping
+		var bg_base = $(base_id).css("background-color");
+		var bg_data = $(data_id).css("background-color");
+		// bling, bling
+		$(base_id).animate({"background-color": to_col}, 200).
+				animate({"background-color": bg_base}, 500);
+		$(data_id).animate({"background-color": to_col}, 200).
+				animate({"background-color": bg_data}, 500);
 	});
 
 	// details layout housekeeping

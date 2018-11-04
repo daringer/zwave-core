@@ -40,6 +40,12 @@ app = Flask(__name__)
 api = Api(app)
 
 
+
+def listify(it_or_not):
+    if isinstance(it_or_not, set):
+        return [x for x in it_or_not]
+    return it_or_not
+
 def to_json(obj, max_depth=10, cur_depth=0):
     """Recurse through `obj` to jsonify non-jsonifyable data-types (not cycle safe!)"""
     if cur_depth > max_depth:
@@ -59,10 +65,15 @@ def to_json(obj, max_depth=10, cur_depth=0):
         #print (out)
         return out
     elif isinstance(obj, (ZWaveValue, ZWaveNode, ZWaveNetwork, ZWaveOption, ZWaveController)):
-        if isinstance(obj, ZWaveValue):
-            return to_json(obj.to_dict(), max_depth=max_depth, cur_depth=cur_depth+1)
-        elif isinstance(obj, ZWaveNode):
-            return to_json(obj.to_dict(), max_depth=max_depth, cur_depth=cur_depth+1)
+        #if isinstance(obj, (ZWaveValue, ZWaveNode, ZWaveNetwork, ZWaveController)):
+        if isinstance(obj, (ZWaveValue, ZWaveNode)):
+            dct = obj.to_dict()
+            x = dict((k, listify(dct[k])) for k in dct.keys())
+            if "value_id" in x:
+                x["value_id"] = str(x["value_id"])
+            #print("AFTER LISTIFY", x)
+            return x
+            #return to_json(obj.to_dict(), max_depth=max_depth, cur_depth=cur_depth+1)
         else:
             return obj.__class__.__name__
             #print("JSON ZWAVEVAL", obj.to_dict())
@@ -263,14 +274,14 @@ def default_signal_handler(sender, signal, *v, **kw):
     while True:
         #print ("WHILE SIG HDNL:" , x["uuid"], kw)
         try:
-            print (kw)
-            if "node" in kw:
-                x["node_id"] = kw["node"].node_id
-            if "value" in kw:
-                x["value"] = kw["value"]
-                x["value"].value_id = str(x["value"].value_id)
-                x["value_id"] = str(kw["value"].value_id)
-                x["data"] = kw["value"].data
+            #print (kw)
+            #if "node" in kw:
+            #    x["node_id"] = kw["node"].node_id
+            #if "value" in kw:
+            #    x["value"] = kw["value"]
+            #    x["value"].value_id = str(x["value"].value_id)
+            #    x["value_id"] = str(kw["value"].value_id)
+            #    x["data"] = kw["value"].data
 
             #print ("INSIDE TRY:", x)
                         #if "args" in kw:
@@ -552,8 +563,9 @@ class Node(Resource):
 @rest.post("/node/<int:node_id>/action/<string:action>")
 def node_action(node_id, action):
     node = zwave[node_id]
-    getattr(node, action)
-    return ret_jmsg(msg="Action: {} sent for node-id: {}".format(action, node_id))
+    ret = getattr(node, action)()
+    return ret_jmsg(msg="Action: {} sent for node-id: {} returned: {}". \
+                    format(action, node_id, str(ret)))
 
 #class NodeGroups(Resource):
 #    def get(self, node_id):
@@ -594,7 +606,7 @@ class NodeValue(Resource):
         if value_id not in node_vals:
             return ret_err(404, msg="ValueID not found: {} node_id: {}".format(value_id, node_id))
 
-        data = zwave[node_id].values[value_id].check_data(data)
+        data = node_vals[value_id].check_data(data)
         #print ("SEETTTING", val, val.data, "TOOOO:", data)
         if data is None:
             print ("data contents are crap: {}, check_data() failed...".format(data))
