@@ -47,8 +47,8 @@ function add_node_action(node_id, act_id) {
 }
 
 function add_node_prop(node_id, prop_key, prop_value) {
-	/* avoid adding 'values', 'groups' or 'stats' here as properties */
-	if (prop_key == "groups" || prop_key == "values" || prop_key == "stats")
+	/* avoid adding unwanted here as properties */
+	if(["groups", "values", "stats", "actions"].findIndex((x) => (x == prop_key)) > -1)
 		return;
 
 	var node = gob.manager.get_node(node_id);
