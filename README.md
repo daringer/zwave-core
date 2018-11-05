@@ -31,20 +31,35 @@ more today
 ## Micro-documentation (`/toc` output)
 
 /frontend                                HEAD,GET			               frontend
+
 /net                                     HEAD,GET		                 netinfo 
+
 /net/action/action                       POST			                   netaction 
+
 /net/actions                             HEAD,GET			               available_net_actions
+
 /net/ctrl/action/action                  POST							           ctrlaction 
+
 /net/ctrl/actions                        HEAD,GET                    available_ctrl_actions
+
 /net/opts                                GET,HEAD,DELETE,PATCH,POST  options 
+
 /net/signals                             HEAD,GET		  	 	 	 	 	 	 	 list_signals
+
 /node/<int:node_id>                      GET,HEAD,PATCH              node 
+
 /node/<int:node_id>/action/action        POST		                     node_action 
+
 /node/<int:node_id>/value/<int:value_id> POST,HEAD,GET				       nodevalue 
+
 /nodes                                   HEAD,GET			               nodelist
+
 /static/filename         			           HEAD,GET	                   static 
+
 /static/js/<string:path>                 HEAD,GET 	                 frontend_static
+
 /static/js/<string:path>                 HEAD,GET                    frontend_static
+
 /toc                                     HEAD,GET			               list_routes
 
 
