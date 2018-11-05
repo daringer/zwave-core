@@ -12,6 +12,16 @@ hr {
   border-style: groove;
 }
 
+
+.hex_msg {
+	font: 7pt Monaco lighter;
+}
+
+.hex_spacer {
+	margin: 0px 5px 0px 5px;
+	padding: 0;
+}
+
 .ui-controlgroup-halfbutton, .ui-button, .ui-corner-button {
 	background-color: #f6f6f6;
 	padding-top: 6px;
@@ -67,6 +77,18 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 .node_details_box {
 	float:left;
 }
+.node_details_box_nofloat {
+	float: none;
+	margin-bottom: 5px;
+}
+.multi_detail_box {
+	  display: inline-block;
+	  width:250px;
+    min-inline-size: min-content;
+		float:left;
+}
+
+
 
 .val_data_label, .val_data_content, .val_data, .val_data_label_extra,
 .val_data_minmax, .val_data_extra_text, .group_data_label, .group_data_assoc,

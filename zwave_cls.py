@@ -34,36 +34,14 @@ class ZWave:
                 dispatcher.connect(
                     sig_handler, signal=sig, sender=dispatcher.Any)
 
-    #@property
-    #def nodes(self):
-    #    return self.net.nodes
-
     def get_node(self, node_id, silentfail=False):
-        #if isinstance(node_id, ZWaveNode):
-        #    return node_id
         if not self.net:
             self.err_handler(414)
-
-        #self.nodes = self.net.nodes
-        #if len(self.nodes) != len(self.net.nodes):
-        #    for n_id, node in self.net.nodes.items():
-        #        #node.__class__ = Node
-        #        #self.nodes[n_id] = node
-        #        #for val_id, val in node.values.items():
-        #        #    val.__class__ = NodeValue
-        #
-        #    self.nodes = dict((node_id, Node(node_id, self.net))
-        #        for node_id, node in self.net.nodes.items())
-        #print (self.net.nodes.get(node_id).values)
-        #print (self.nodes.get(node_id).values)
         out = self.net.nodes.get(node_id)
-        #ret = Node(self.net.nodes.get(node_id), self.net)
-        #dct = {}
-        #for val in out.values.values():
-        #    self.uid2node_val[val.uid] = (node_id, val)
-            #dct[val.uid] = val
-        #out.values = dct
         return out
+
+    def __contains__(self, node_id):
+        return node_id in self.net.nodes
 
     def __getitem__(self, node_id):
         return self.get_node(node_id)
@@ -76,19 +54,6 @@ class ZWave:
         fields = fields or ["node_id", "name", "query_stage"]
 
         return dict((f, getattr(node, f)) for f in fields if hasattr(node, f))
-
-    #def get_value_by_uid(self, uid):
-    #    return self.uid2node_val.get(uid, (None, None))
-
-    #def set_value_by_uid(self, uid, val):
-    #    node_id, tar_val = self.uid2node_val[uid]
-    #    set_val = tar_val.check_data(val)
-    #    if set_val is not None:
-    #        #tar_val.data = set_val
-    #        self[node_id].values[tar_val.value_id].data = set_val
-    #    else:
-    #        raise ZWaveCentralException("provided value is bad: {}".format(val))
-    #    return True
 
     def update_options(self, opts):
         self.raw_opts.update(opts)

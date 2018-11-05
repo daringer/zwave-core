@@ -1,2 +1,28 @@
-# zwave-core
-Flexible Z-Wave Service Server - Access your Z-Wave nodes fast and independent - Various communication paths planned/supported: REST-api, simple and powerful browser UI, MQTT* and more... Perfect for maintaining big node-numbers, ozwcp replacement!
+# Z-Wave Core - Complete, flexible, pluggable
+Access to your network from any automation with REST or publish your network as MQTT!
+
+Or you are simply looking to (finally) replace **ozwcp** to maintain your network hassle-free? here you go!
+
+## Quickstart
+
+
+## The Vision
+
+
+## Frontend(s) / Interoperability
+
+
+## Status
+
+
+## Documentation
+
+
+
+## Realizations
+
+
+
+## Contribute
+
+

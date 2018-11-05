@@ -137,14 +137,14 @@ class AjaxManager {
 		});
 	}
 
-	node_all_details(node_id, cb_add_detail, cb_add_group, cb_add_action, cb_add_prop) {
+	node_all_details(node_id, cb_add_detail, cb_add_group, cb_add_action, cb_add_prop, cb_add_stat) {
 		var obj_this = this;
 		return this.get("/node/" + node_id, {}, function (ret) {
 			/* all node details == all available node values */
 			var node = obj_this.get_node(node_id);
 			node.update_from_json(ret.data);
 
-			var fields = ["basic", "user", "system", "config", "groups", "actions", "props"];
+			var fields = ["basic", "user", "system", "config", "groups", "actions", "props", "stats"];
 
 			fields.forEach(
 				(field) => $("#node_details_" + field + "_content").html(""));
@@ -155,11 +155,15 @@ class AjaxManager {
 			ret.data.actions.forEach(
 				(act_id) => cb_add_action(node_id, act_id));
 
+			Object.keys(ret.data.stats).forEach(
+				(stat_key) => cb_add_stat(node_id, stat_key, ret.data.stats[stat_key]));
+
 			Object.keys(node).forEach(
 				(prop_key) => cb_add_prop(node_id, prop_key, node[prop_key]));
 
 			Object.keys(node.groups).forEach(
 				(grp_id) => cb_add_group(node_id, node.groups[grp_id]));
+
 		});
 	}
 }

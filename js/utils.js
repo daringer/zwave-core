@@ -1,5 +1,12 @@
 "use strict";
 
+String.prototype.lpad = function(padString, length) {
+    var str = this;
+    while (str.length < length)
+        str = padString + str;
+    return str;
+}
+
 function DumpObject(obj, descent=false) {
     var od = new Object;
     var result = "";
@@ -93,7 +100,7 @@ var IO = Object({
 			  } else if (key == "node" && data.node != null && "node_id" in data.node) {
 				  _mydata.push(`node_id: ${data.node.node_id}`);
 
-			  } else if (key != "event_type") {
+			  } else if (key != "event_type" && key != "args") {
 					if (data[key] == null)
 						_mydata.push(`${key}=null}`);
 					else
@@ -103,7 +110,7 @@ var IO = Object({
 			if ("args" in data && typeof args == "object") {
 				for (var arg_key of Object.keys(data.args)) {
 					if (data.args[arg_key] != null)
-					  _mydata.push(`arg: ${data.args[arg_key].toString()}`);
+					  _mydata.push(`arg:${arg_key}=${data.args[arg_key].toString()}`);
 				}
 			}
 		}

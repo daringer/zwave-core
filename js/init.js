@@ -22,8 +22,8 @@ function add_node(node) {
 			  "ctrl": "<a href=# id=\"" + node_link_id + "\">show</a>"
     }).then(function() {
 	  	$("#" + node_link_id).click(node.node_id, function(ev) {
-	  		gob.manager.node_all_details(ev.data,
-					add_detail, add_group, add_node_action, add_node_prop).then(function() {
+	  		gob.manager.node_all_details(ev.data, add_detail, add_group,
+					add_node_action, add_node_prop, add_stats).then(function() {
 						$(document).trigger("Frontend::UpdatedDetails");
 				});
 		  });
@@ -47,12 +47,11 @@ function add_node_action(node_id, act_id) {
 }
 
 function add_node_prop(node_id, prop_key, prop_value) {
-	/* don't add 'values' and 'groups' here as properties */
-	if (prop_key == "groups" || prop_key == "values")
+	/* avoid adding 'values', 'groups' or 'stats' here as properties */
+	if (prop_key == "groups" || prop_key == "values" || prop_key == "stats")
 		return;
 
 	var node = gob.manager.get_node(node_id);
-
 	prop_value = prop_value.toString().split(",").join(", ").trim().replace(/  /g, "");
 
 	/* find 'someone' (central class/obj whatsoever) to be asked for all these html-ids */
@@ -68,6 +67,35 @@ function add_node_prop(node_id, prop_key, prop_value) {
   $("#node_details_props_content").append(html);
 }
 
+function add_stats(node_id, stat_key, stat_value) {
+	var node = gob.manager.get_node(node_id);
+	var key = `node_stats_${node_id}_${stat_key}`;
+
+	if (stat_key == "lastReceivedMessage") {
+		stat_value = stat_value.map((num) => num.toString(16).toUpperCase().lpad("0", 2));
+		let out = new Array();
+		for (var row=0; row<16; row++)
+				out.push(stat_value.slice(row*8, (row+1)*8).join(" ") +
+					  "<span class=hex_spacer>&nbsp;</span>" +
+						stat_value.slice((row+1)*8, (row+2)*8).join(" "));
+
+		stat_value = out.join("<br />");
+		stat_value = stat_value.slice(0, -6);
+		stat_value = stat_value.padEnd(stat_value.length+60, "&nbsp;");
+		stat_value = "<span class=hex_msg>" + stat_value + "</span>";
+	}
+
+	var html = `
+	  <div id=${key} class=prop_data_box>
+	    <div class=prop_data_label>
+		    <label for=${key}>${stat_key}</label>
+			</div>
+      <span name=${key} id=${key}_data class=prop_data>${stat_value}</span>
+	  	</div>`;
+
+  $("#node_details_stats_content").append(html);
+
+}
 
 function add_group(node_id, group) {
 	var node = gob.manager.get_node(node_id);
@@ -262,7 +290,6 @@ $( function() {
 				//// removed, as somehow unused ?! @TODO, what's up here? feature?
 				// var ctrl = Controller(gob.net, IO);
 				// ctrl.setup(gob.net);
-
 			});
 	});
 	// network goes down, triggered once
@@ -302,8 +329,6 @@ $( function() {
 		else
 			$(data_id).val(new_data.toString());
 
-
-
 		// housekeeping
 		var bg_base = $(base_id).css("background-color");
 		var bg_data = $(data_id).css("background-color");
@@ -334,7 +359,7 @@ $( function() {
 
 	// details layout housekeeping
 	$( document ).on("Frontend::UpdatedDetails", function(ev) {
-		var fields = ["basic", "user", "system", "config", "groups", "actions", "props"];
+		var fields = ["basic", "user", "system", "config", "groups", "actions", "props", "stats"];
 		var keys = fields.map((field) => `#node_details_${field}_content`);
 
 		// hide empty detail-blocks

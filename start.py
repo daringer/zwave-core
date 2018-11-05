@@ -18,126 +18,56 @@ from jinja2 import (BaseLoader, Environment, PackageLoader, Template,
 from openzwave.object import ZWaveException
 from openzwave.node import ZWaveNode
 from openzwave.value import ZWaveValue
-
-##
-## monkeypatch UID as unique id: uid == id_on_network
-ZWaveValue.uid = property(lambda self: self.id_on_network.replace(".","_"))
-## @TODO: you don't think this is a permanent solution, right?
-##
-
-
 from openzwave.network import ZWaveNetwork
 from openzwave.controller import ZWaveController
 from openzwave.option import ZWaveOption
 
 from enums import NetState, OptionState
+
 ###### own
 from parsers import nodes_parse, opt_parse, value_parse
 from zwave_cls import ZWave, get_member
+from ajax_builder import Ajax, ret_ajax, ret_jajax, ret_err, \
+        ret_jerr, ret_msg, ret_jmsg
+# @TODO: get rid of to_json(), worst possible implementation :(
+from utils import listify, to_json
+
+
+DEBUG = True
 
 
 app = Flask(__name__)
+#app.config['SECRET_KEY'] = "meissna_geheim"
+
 api = Api(app)
-
-
-
-def listify(it_or_not):
-    if isinstance(it_or_not, set):
-        return [x for x in it_or_not]
-    return it_or_not
-
-def to_json(obj, max_depth=10, cur_depth=0):
-    """Recurse through `obj` to jsonify non-jsonifyable data-types (not cycle safe!)"""
-    if cur_depth > max_depth:
-      return "[...]"
-
-    if isinstance(obj, dict):
-        #keys = [k for k in obj.keys() if (not isinstance(k, str) or not k.startswith("_"))]
-        #vals = map(lambda x: to_json(x, max_depth=max_depth, cur_depth=cur_depth + 1), obj.values())
-        #return dict(zip(keys, vals))
-        out = {}
-        for key, val in obj.items():
-          if key == "value_id":
-              out[key] = str(val)
-          else:
-              out[key] = to_json(val) #to_json(val, max_depth=max_depth, cur_depth=cur_depth+1)
-          #print ("TO_JSON", key, val)
-        #print (out)
-        return out
-    elif isinstance(obj, (ZWaveValue, ZWaveNode, ZWaveNetwork, ZWaveOption, ZWaveController)):
-        #if isinstance(obj, (ZWaveValue, ZWaveNode, ZWaveNetwork, ZWaveController)):
-        if isinstance(obj, (ZWaveValue, ZWaveNode)):
-            dct = obj.to_dict()
-            x = dict((k, listify(dct[k])) for k in dct.keys())
-            if "value_id" in x:
-                x["value_id"] = str(x["value_id"])
-            #print("AFTER LISTIFY", x)
-            return x
-            #return to_json(obj.to_dict(), max_depth=max_depth, cur_depth=cur_depth+1)
-        else:
-            return obj.__class__.__name__
-            #print("JSON ZWAVEVAL", obj.to_dict())
-
-        #return dict((key, to_json(val, max_depth=max_depth, cur_depth=cur_depth)) \
-        #            for key, val in obj.to_dict().items() \
-        #            if (not isinstance(key, str) or not key.startswith("_")))
-    elif isinstance(obj, (tuple, list, frozenset, set)):
-        return [to_json(sub_obj, max_depth=max_depth, cur_depth=cur_depth + 1) for sub_obj in obj]
-    elif isinstance(obj, (int, str, float, complex, bool, type(None))):
-        if isinstance(obj, int) and obj > 2**53-1:
-          return str(obj)
-        return obj
-    else:
-        return "[cls: {}]".format(obj.__class__.__name__)
-    return obj
 
 @api.representation('application/json')
 def output_json(data, code, headers=None):
-    """overwrite application/json based responses using this function"""
+    """overwrite application/json based responses"""
     data = to_json(data)
     resp = make_response(json.dumps(data), code)
     resp.headers.extend(headers or {})
     return resp
 
-#app.config['SECRET_KEY'] = "meissna_geheim"
 
+# bring up our async tooling
 socketio = SocketIO(app, async_mode="eventlet")
-
-#SocketIO.
-#socketio = SocketIO.AsyncServer(async_mode="aiohttp")
-#socketio = SocketIO(app, async_mode="threading")
-#socketio = SocketIO(app, async_mode="gevent")
-
-#@app.after_request
-#def no_caching_header(r):
-#    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-#    r.headers["Pragma"] = "no-cache"
-#    r.headers["Expires"] = "0"
-#    r.headers['Cache-Control'] = 'public, max-age=0'
-#    return r
-
-#def api_route(self, *args, **kwargs):
-#    def wrapper(cls):
-#        self.add_resource(cls, *args, **kwargs)
-#        return cls
-#    return wrapper
-
 thread = None
 thread_lock = Lock()
 
-
+# do not touch for now, but undeniably needs improvements: @TODO
 @socketio.on("connect", namespace="/websocket")
 def io_connect():
-    emit(
-        "message", {"msg": "Hello World (from websocket server)"},
-        namespace="/websocket")  #oom="ficken", broadcast=True)
+    emit("message", {"msg": "Hello World (from websocket server)"},
+         namespace="/websocket")
 
     def consume_queue():
+        """queue worker / consumer"""
         global sig_queue
         while True:
             try:
                 item = sig_queue.get(timeout=5)
-                socketio.send(to_json(item), namespace="/websocket")  #, broadcast=True)
+                socketio.send(to_json(item), namespace="/websocket")
             except Empty:
                 continue
 
@@ -156,75 +86,9 @@ def io_disconnect():
     return True
 
 
-###
-### (ajax)response creation helper
-###
-###
-class Ajax:
-    def __init__(self, data=None, msg=None, err=None, jsonify=False):
-        self.jsonify = jsonify
-
-        self._data = {}
-        self._msg = msg or None
-        self._error = err or None
-        if data is not None:
-          self._data = data
-
-    @property
-    def msg(self, msg):
-        return self._msg
-    @msg.setter
-    def msg(self, msg):
-        self._msg = msg
-
-    @property
-    def data(self):
-        return self._data
-    @data.setter
-    def data(self, raw_data):
-        self._data = raw_data
-    def __setitem__(self, data_key, data_val):
-        self._data[data_key] = data_val
-    def __getitem__(self, data_key):
-        return self._data[data_key]
-
-    def set_state(self, which, state):
-        self._data.setdefault("states", {})[which] = state
-        return self
-
-    def set_err(self, code, msg=None):
-        self._error = code
-        self.msg = msg
-        return self
-
-    def render(self):
-      out = {}
-      if len(self._data) > 0:
-          out["data"] = self._data
-      if self._msg:
-          out["msg"] = self._msg
-      if self._error:
-          out["error"] = self._error
-      return out if not self.jsonify else jsonify(out)
-
-def ret_ajax(data, msg=None):
-    return Ajax(data=data, msg=msg).render()
-def ret_jajax(data, msg=None):
-    return Ajax(data=data, msg=msg, jsonify=True).render()
-def ret_err(code, msg=None):
-    return Ajax(err=code, msg=msg).render()
-def ret_jerr(code, msg=None):
-    return Ajax(err=code, msg=msg, jsonify=True).render()
-def ret_msg(msg):
-    return Ajax(msg=msg).render()
-def ret_jmsg(msg):
-    return Ajax(msg=msg, jsonify=True).render()
-
-###
-### Error handling
-### @todo: find some neat scheme to have consistent error-handlers
-###        (i.e., stop abusing http-errorcodes here!)
-###
+# "Error handling"
+# @TODO: find some neat scheme to have consistent error-handlers
+#        (i.e., stop abusing http-errorcodes here!)
 @app.errorhandler(404)
 def not_found(error):
     return ret_jerr(404, "not found: {}".format(request.url))
@@ -242,9 +106,17 @@ def no_controller(error):
     return ret_jerr(415, "no controller found")
 
 
-### woho, brain-shrinking 8-liner:
-### wrapping decorator alias its arguments based on the decorating method/alias name
+# woho, brain-shrinking 8-liner, pythonic-fanciness including brain-damage
+# wrapping decorator aliases its arguments based on the decorating method/alias name
+# @TODO: another (sub-)closure to apply jsonify breaks it, help, why?
+# @FIXME: an instance is needed, could __call__ be used?
 class _rest:
+    """
+    Shorter, fancier, http-method-driven app-routing, usage:
+    @rest.get("/my/url/<int:foo>/endpoint")
+    def my_view(foo, opt_arg=None):
+        return jsonify({"some_data": 123})
+    """
     def __getattr__(self, key):
         return self._wrap(key)
 
@@ -256,55 +128,36 @@ class _rest:
         return func
 rest = _rest()
 
-#### @todo: find out if the eventlet based websocket is now really working or just by accident!
-#### @TODO: those two here have NOOO limits in size!!!! @FIXME
+# @TODO: all (web-)socket related components shall be in one place...
 sig_queue = Queue()
 #sig_archive = {}
 
+# this by far does not look trustworthy,
+# @TODO: realize a less fear-driven solution
 def default_signal_handler(sender, signal, *v, **kw):
+    """Signal header for the 'louie' Z-Wave emitted signals"""
     global sig_queue #, sig_archive
-    print ("DEFAULT HANDLER START", signal)
-    x = {
-        "stamp": time(),
-        "sender": str(sender),
-        "event_type": signal,
-        "uuid": uuid4().int % ((2**32)-1)
-    }
-    #print("PRE WHILE", x["uuid"], signal, kw)
-    while True:
-        #print ("WHILE SIG HDNL:" , x["uuid"], kw)
-        try:
-            #print (kw)
-            #if "node" in kw:
-            #    x["node_id"] = kw["node"].node_id
-            #if "value" in kw:
-            #    x["value"] = kw["value"]
-            #    x["value"].value_id = str(x["value"].value_id)
-            #    x["value_id"] = str(kw["value"].value_id)
-            #    x["data"] = kw["value"].data
+    if DEBUG:
+        print ("DEFAULT HANDLER:", signal)
 
-            #print ("INSIDE TRY:", x)
-                        #if "args" in kw:
-            #    x["args"] = str(list(map(str, kw["args"])))
-            #if "network" in kw:
-            #    x["network"] = kw["network"].state
-            #if all((k not in kw) for k in ["node", "value", "args", "network"]):
-            #    x["full"] = str(kw)
-            #x.update(kw)
-            #cpy = dict(x.items())
-            #cpy =
-            #cpy["data"] = cpy["data"].data
+    x = {"stamp": time(), "sender": str(sender), "event_type": signal,
+         "uuid": uuid4().int % ((2**32)-1) }
+
+    while True:
+        try:
             x.update(kw)
-            #"node"] = x
-            #el x["network"]
-            #el x["value"]
-            print ("ENQUEING:",x)
+            if DEBUG:
+                print ("ENQUEING:", x)
             sig_queue.put(to_json(x, max_depth=3), timeout=5)
             #sig_archive[x["uuid"]] = x
             break
         except Full:
+            if DEBUG:
+                print ("ENQUE failed, retrying...")
             continue
     return True
+
+
 
 ###
 ### (web)page(s)
@@ -382,9 +235,7 @@ class Options(Resource):
         return Ajax(data=dict(zwave.raw_opts.items())) \
            .set_state("options", OptionState.empty).render()
 
-###
-### "Table of contents"
-###
+## "Table of contents" REST-style
 @rest.get("/toc")
 def list_routes():
     from random import randint
@@ -410,18 +261,13 @@ def list_routes():
         output.append(line)
     return ret_jajax(list(sorted(output)))
 
-###
-### NETWORK
-###
+##
+## Z-Wave network views
+##
 @rest.get("/net/signals")
 def list_signals():
     from signals import net_signals
     return ret_jajax([sig[0] for sig in net_signals])
-
-#@rest.get("/net/signals/latest/<int:num>")
-#def latest_signals(num):
-#    return jsonify(
-#        list(map(lambda x: (x[0], str(x[1]), x[2]), zwave.signals[-num:])))
 
 @rest.get("/net")
 def netinfo():
@@ -429,10 +275,11 @@ def netinfo():
         abort(414)
     return ret_jajax(zwave.net.to_dict())
 
+# @TODO: arg passing for actions is not nice, alternatives?
 @rest.post("/net/action/<string:action>")
 def netaction(action):
-    if (zwave.net is None
-            and action != "start") and not hasattr(zwave.net, action):
+    """exec an 'action', restricted to the listed ones (for now)"""
+    if (zwave.net is None and action != "start") and not hasattr(zwave.net, action):
         abort(404)
 
     ret = zwave.start() if action == "start" else \
@@ -451,43 +298,13 @@ def available_net_actions():
 
     return ret_jajax([
         "heal", "start", "stop", "home_id", "is_ready", "nodes_count",
-        "get_scenes", "scenes_count", "test", "sleeping_nodes_count", "state",
-        "write_config"
+        "write_config", "get_scenes", "scenes_count", "test",
+        "sleeping_nodes_count", "state"
     ])
 
-
-@rest.get("/net/ctrl/actions")
-def available_ctrl_actions(ctrl_idx=0):
-    ctrl = zwave.ctrl[ctrl_idx] if len(zwave.ctrl) > ctrl_idx else None
-    if ctrl is None:
-        abort(415)
-    if not zwave.net:
-        abort(414)
-
-    return ret_jajax([
-        "start",
-        "stop",
-        "add_node",  # "exclude",
-        "assign_return_route",
-        "cancel_command",
-        "capabilities",
-        "device",
-        "is_primary_controller",
-        "library_config_path",
-        "library_description",
-        "library_type_name",
-        "library_user_path",
-        "library_version",
-        "name",
-        "node",
-        "node_id",
-        "options",
-        "owz_library_version",
-        "python_library_config_version",
-        "stats"
-    ])
-
-
+##
+## Z-Wave controller views
+##
 @rest.post("/net/ctrl/action/<string:action>")
 def ctrlaction(action, ctrl_idx=0):
     ctrl = zwave.ctrl[ctrl_idx] if len(zwave.ctrl) > ctrl_idx else None
@@ -501,31 +318,47 @@ def ctrlaction(action, ctrl_idx=0):
     ret = get_member(ctrl, action, request.args)
     if isinstance(ret, set):
         ret = list(sorted(ret))
-    #return jsonify({
     return ret_jajax({
         "returned": ret,
         "executed": action,
         "controller": ctrl.to_dict()
     })
 
+# @TODO: same as for network here w.r.t. arg passing
+@rest.get("/net/ctrl/actions")
+def available_ctrl_actions(ctrl_idx=0):
+    ctrl = zwave.ctrl[ctrl_idx] if len(zwave.ctrl) > ctrl_idx else None
+    if ctrl is None:
+        abort(415)
+    if not zwave.net:
+        abort(414)
+
+    # @TODO: order these similar to the ones in node (also seperate POST/GET)
+    return ret_jajax([
+        "start", "stop", "add_node",  "assign_return_route", "cancel_command",
+        "capabilities", "device", "is_primary_controller", "stats",
+        "library_config_path", "library_description", "library_type_name",
+        "library_user_path", "library_version", "name", "node", "node_id",
+        "options", "owz_library_version", "python_library_config_version",
+    ])
+    # "exclude", "hard_reset", "soft_reset", "remove_node" <- intentionally left-out for now...
 
 @rest.get("/nodes")
 def nodelist():
     if not zwave.net:
         abort(414)
 
-    ##### @TODO: test() + stats() MISSING!!!
+    main_fields = ["node_id", "name", "location", "product_name", "manufacturer_name"]
 
+    fields = ["query_stage", "type", "specific", "product_type", "product_id", "manufacturer_id"]
 
     status_props = ["is_awake", "is_beaming_device", "is_failed", "is_frequent_listening_device",
       "is_info_received", "is_listening_device", "is_locked", "is_ready", "is_routing_device",
       "is_security_device", "is_sleeping", "is_zwave_plus"]
-    fields = ["node_id", "name", "query_stage", "location", "type", "specific",
-        "product_name", "product_type", "product_id", "query_stage",
-        "manufacturer_name", "manufacturer_id"]
-    props = ["basic", "capabilities", "command_classes", "device_type", "generic",
-        "max_baud_rate", "neighbors", "num_groups", "role", "security", "version"]
-    tmp = fields + status_props + props;
+
+    props = ["basic", "capabilities", "command_classes", "device_type", "generic", "stats",
+             "max_baud_rate", "neighbors", "num_groups", "role", "security", "version"]
+    tmp = main_fields + fields + status_props + props;
 
     return ret_jajax([to_json(zwave.get_node_details(node_id, tmp)) \
                       for node_id in zwave.net.nodes])
@@ -538,18 +371,13 @@ class Node(Resource):
           my_groups[idx]["index"] = idx
         actions = [
          "assign_return_route",  "heal", "network_update", "neighbor_update",
-         "refresh_info", "request_state", "send_information"
+         "refresh_info", "request_state", "send_information", "test"
         ]
-        #for k, v in zwave[node_id].values.items():
-        #  print ("VALUE NODEE GET:", k, v, "UID", v.uid)
-
-        #uid2val = dict((v.uid, v) for v in zwave[node_id].values.values())
-
         return ret_ajax({
             "values": zwave[node_id].values,
-            #"uid2val": uid2val,
             "actions": actions,
             "groups": my_groups,
+            "stats": zwave[node_id].stats
         })
 
     def patch(self, node_id):
@@ -562,8 +390,15 @@ class Node(Resource):
 
 @rest.post("/node/<int:node_id>/action/<string:action>")
 def node_action(node_id, action):
+    if node_id not in zwave:
+        return ret_jerr(404, msg="node-id: {} does not exist".format(node_id))
+
+    # @TOOD: add list of possible node-actions
+
     node = zwave[node_id]
-    ret = getattr(node, action)()
+    ret = getattr(node, action)
+    if callable(ret):
+        ret = ret()
     return ret_jmsg(msg="Action: {} sent for node-id: {} returned: {}". \
                     format(action, node_id, str(ret)))
 

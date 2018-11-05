@@ -7,7 +7,7 @@ $("#event_grid").jsGrid({
 	inserting: false,
 	editing: false,
 	sorting: true,
-	paging: true,
+	paging: false,
 	autoload: false,
   filtering: false,
 
