@@ -3,6 +3,20 @@ Access to your network from any automation with REST or publish your network as 
 
 Or you are simply looking to (finally) replace **ozwcp** to maintain your network hassle-free? here you go!
 
+
+**README will be updated today evening, in the meantime some screens**
+
+-----------------------
+
+![full node view, any possible detail on one screen, directly editable, instant feedback, websocket driven event log in the top right corner](https://github.com/daringer/image_dump/blob/master/zwave-core-screen1.png)
+
+-----------------------
+
+![controller view, less configuration, full ajax frontend (oczwp-replacement), full REST-api already available](https://github.com/daringer/image_dump/blob/master/zwave-core-screen2.png)
+
+-----------------------
+
+
 ## Quickstart
 
 more today
