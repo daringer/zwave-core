@@ -67,9 +67,9 @@ function add_node_prop(node_id, prop_key, prop_value) {
   $("#node_details_props_content").append(html);
 }
 
-function add_stats(node_id, stat_key, stat_value) {
+function add_stats(node_id, stat_key, stat_value, target_detail) {
 	var node = gob.manager.get_node(node_id);
-	var key = `node_stats_${node_id}_${stat_key}`;
+	var key = `node_${target_detail}_${node_id}_${stat_key}`;
 
 	if (stat_key == "lastReceivedMessage") {
 		stat_value = stat_value.map((num) => num.toString(16).toUpperCase().lpad("0", 2));
@@ -93,7 +93,7 @@ function add_stats(node_id, stat_key, stat_value) {
       <span name=${key} id=${key}_data class=prop_data>${stat_value}</span>
 	  	</div>`;
 
-  $("#node_details_stats_content").append(html);
+  $(`#node_details_${target_detail}_content`).append(html);
 
 }
 
@@ -359,7 +359,8 @@ $( function() {
 
 	// details layout housekeeping
 	$( document ).on("Frontend::UpdatedDetails", function(ev) {
-		var fields = ["basic", "user", "system", "config", "groups", "actions", "props", "stats"];
+		var fields = ["basic", "user", "system", "config", "groups",
+							    "actions", "props", "stats", "ctrlstats"];
 		var keys = fields.map((field) => `#node_details_${field}_content`);
 
 		// hide empty detail-blocks

@@ -144,7 +144,8 @@ class AjaxManager {
 			var node = obj_this.get_node(node_id);
 			node.update_from_json(ret.data);
 
-			var fields = ["basic", "user", "system", "config", "groups", "actions", "props", "stats"];
+			var fields = ["basic", "user", "system", "config", "groups",
+										"actions", "props", "stats", "ctrl_stats"];
 
 			fields.forEach(
 				(field) => $("#node_details_" + field + "_content").html(""));
@@ -156,7 +157,11 @@ class AjaxManager {
 				(act_id) => cb_add_action(node_id, act_id));
 
 			Object.keys(ret.data.stats).forEach(
-				(stat_key) => cb_add_stat(node_id, stat_key, ret.data.stats[stat_key]));
+					(stat_key) => cb_add_stat(node_id, stat_key, ret.data.stats[stat_key], "stats"));
+
+			if (ret.data.is_ctrl)
+				Object.keys(ret.data.ctrl_stats).forEach(
+						(stat_key) => cb_add_stat(node_id, stat_key, ret.data.ctrl_stats[stat_key], "ctrlstats"));
 
 			Object.keys(node).forEach(
 				(prop_key) => cb_add_prop(node_id, prop_key, node[prop_key]));

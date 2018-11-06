@@ -367,17 +367,21 @@ class Node(Resource):
     def get(self, node_id):
         my_groups = {}
         for idx, grp in zwave[node_id].groups.items():
-          my_groups[idx] = grp.to_dict()
-          my_groups[idx]["index"] = idx
+            my_groups[idx] = grp.to_dict()
+            my_groups[idx]["index"] = idx
         actions = [
          "assign_return_route",  "heal", "network_update", "neighbor_update",
          "refresh_info", "request_state", "send_information", "test"
         ]
+
+        is_ctrl = zwave[node_id].role == "Central Controller"
         return ret_ajax({
             "values": zwave[node_id].values,
             "actions": actions,
             "groups": my_groups,
-            "stats": zwave[node_id].stats
+            "stats": zwave[node_id].stats,
+            "is_ctrl": is_ctrl,
+            "ctrl_stats": zwave.ctrl[0].stats if is_ctrl else ""
         })
 
     def patch(self, node_id):
@@ -385,7 +389,6 @@ class Node(Resource):
         for key, val in request.args.items():
             if key in ["name", "location", "product_name", "manufacturer_name"]:
                 node.set_field(key, val)
-
         return ret_ajax(dict(node.to_dict()))
 
 @rest.post("/node/<int:node_id>/action/<string:action>")
