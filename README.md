@@ -4,7 +4,7 @@ Access to your network from any automation with REST or publish your network as 
 Or you are simply looking to (finally) replace **ozwcp** to maintain your network hassle-free? here you go!
 
 
-classic warning: this project is in active development, so theoretically there are chances that
+**classic warning:** this project is in active development, so theoretically there are chances that
 things go wrong and in the very, very unlikely but possible case there might be the chance that
 your nodes get somehow excluded or your controller might get hard-resettet.
 
