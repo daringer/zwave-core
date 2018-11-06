@@ -145,7 +145,7 @@ class AjaxManager {
 			node.update_from_json(ret.data);
 
 			var fields = ["basic", "user", "system", "config", "groups",
-										"actions", "props", "stats", "ctrl_stats"];
+										"actions", "props", "stats", "ctrlstats"];
 
 			fields.forEach(
 				(field) => $("#node_details_" + field + "_content").html(""));
