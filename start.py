@@ -391,6 +391,13 @@ class Node(Resource):
                 node.set_field(key, val)
         return ret_ajax(dict(node.to_dict()))
 
+@rest.get("/node/actions")
+def node_actions():
+    actions = ["assign_return_route", "get_command_class_genres", "get_max_associations",
+               "get_stats_label", "has_command_class", "heal", "neighbor_update",
+               "network_update", "refresh_info", "request_state", "send_information", "test"]
+    return ret_jajax(actions)
+
 @rest.post("/node/<int:node_id>/action/<string:action>")
 def node_action(node_id, action):
     if node_id not in zwave:

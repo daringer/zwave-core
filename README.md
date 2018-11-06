@@ -24,35 +24,74 @@ The REST API already supports it technically.
 	 * python-openzwave
 	 * pydispatch
 
-3) ensure you know where your openzwave configurationdirectory is to be found,
+3) ensure you know where your openzwave configuration directory is to be found,
    for me it simply is `/etc/openzwave`
 
 4) check if your controller serial device (something like `/dev/ttyACM0`) is writeable
 
-5) simply execute `start.py` from within the project directory using python:
+5) if you would like zwave-core to use an already existing `zwcfg_<home_id>.xml` openzwave
+   cache file, make sure you have its path (i.e., the containing directory) noted
+
+6) simply execute `start.py` from within the project directory using python:
 ```python start.py```
 
-6) start a browser and visit: [127.0.0.1:5000/frontend](http://127.0.0.1:5000/frontend)
+7) start a browser and visit: [127.0.0.1:5000/frontend](http://127.0.0.1:5000/frontend)
 
-7) in the top left, enter your configuration directory and `device path`, press the `on`
-   button below `network` watch the events flowing while initializeations are done...
+9) in the top left, enter your the three paths you noted before:
 
+  * configuration directory
+	* `device path`
+	* user path, i.e., directory containing your zwcfg<home_id>.xml`
+
+9) click the `on` button below `network` watch the events flowing while initializeations are done
 
 ## The Vision
 
-* first public release to github yesterday, wanted to have it on a certain level first
+ZWave-core shall---as the name suggests---be the core component for the interaction with Z-Wave
+devices and the network. Providing a highly transparent and accurate interface into the Z-Wave
+protocol and not hiding any detail. Using a REST API this transparency is delivered in a platform
+independent, easy accessible way.
 
-* REST API already exposes nearly the full ZWave stack
-  (scenes missing, assoc groups adding/removing nodes, some other minor stuff)
+A dynamic, web-based and reactive interface is exposing this REST API to the browser, serving
+as a clear window into the Z-Wave world. In order to transport the high dynamic of the Z-Wave
+network, websocket-based push is a must allowing the receiver side to not miss any information
+within the network with the smallest possible latency.
 
-* a web frontend (ozcwp replacement) making use of the REST API and websocket-based push
-  to not miss a single signal, overall it's "ok", worth calling it ozcwp replacement with a
-	pretty long list of details to be done
+In contrast to this plain, bare-metal approach the major distinguishing feature will be the MQTT
+layer, which introduces a abstraction layer between any home-automation system and the Z-Wave
+network in order to seperate what does not belong together: physical and functional layers.
+While the former is deployable standalone, without prior knowledge of the surroundings despite
+the Z-Wave network itself, the latter has the freedom to not care about the physical layer at all
+and focus on the functional, end-user focussed challenges. So, in simple words zwave-core provides
+a Z-Wave to IP bridge allowing simplicity in Z-Wave management bridging the gap between WiFi and
+the ISM band.
 
-* finally expose any ZWave device via MQTT, use the frontend to pick/combine
-  whatever is needed and publish it
+### REST API
 
-## Frontend(s) / Interoperability
+| URL                                      |  Methods                  | Description
+| ----                                     |  -------                  | -----------
+| /net                                     |  GET                      | ...
+| /net/actions                             |  GET                      |
+| /net/action/action                       |  POST                     |
+| /net/ctrl/actions                        |  GET                      |
+|                                          |                           |
+| /net/ctrl/action/action                  |  POST                     |
+| /net/opts                                |  GET,DELETE,PATCH,POST    |
+| /net/signals                             |  GET                      |
+|                                          |                           |
+| /nodes                                   |  GET                      |
+| /node/<int:node_id>                      |  GET,PATCH                |
+| /node/<int:node_id>/value/<int:value_id> |  GET,POST                 |
+| /node/actions                            |  GET                      |
+| /node/<int:node_id>/action/action        |  POST                     |
+|                                          |                           |
+| /toc                                     |  GET                      |
+
+### Browser Frontend
+
+### MQTT
+
+Not started yet, but soon it will be ready.(tm)
 
 ## Status
 
@@ -73,39 +112,5 @@ The REST API already supports it technically.
 ![controller view, less configuration, full ajax frontend (oczwp-replacement), full REST-api already available](https://github.com/daringer/image_dump/blob/master/zwave-core-screen2.png)
 
 -----------------------
-
-## REST API - Micro-documentation (`/toc` output)
-
-/frontend                                HEAD,GET			               frontend
-
-/net                                     HEAD,GET		                 netinfo
-
-/net/action/action                       POST			                   netaction
-
-/net/actions                             HEAD,GET			               available_net_actions
-
-/net/ctrl/action/action                  POST							           ctrlaction
-
-/net/ctrl/actions                        HEAD,GET                    available_ctrl_actions
-
-/net/opts                                GET,HEAD,DELETE,PATCH,POST  options
-
-/net/signals                             HEAD,GET		  	 	 	 	 	 	 	 list_signals
-
-/node/<int:node_id>                      GET,HEAD,PATCH              node
-
-/node/<int:node_id>/action/action        POST		                     node_action
-
-/node/<int:node_id>/value/<int:value_id> POST,HEAD,GET				       nodevalue
-
-/nodes                                   HEAD,GET			               nodelist
-
-/static/filename         			           HEAD,GET	                   static
-
-/static/js/<string:path>                 HEAD,GET 	                 frontend_static
-
-/static/js/<string:path>                 HEAD,GET                    frontend_static
-
-/toc                                     HEAD,GET			               list_routes
 
 
