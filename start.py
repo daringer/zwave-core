@@ -32,6 +32,7 @@ from ajax_builder import Ajax, ret_ajax, ret_jajax, ret_err, \
 # @TODO: get rid of to_json(), worst possible implementation :(
 from utils import listify, to_json
 
+from consts import *
 
 DEBUG = True
 
@@ -261,6 +262,9 @@ def list_routes():
         output.append(line)
     return ret_jajax(list(sorted(output)))
 
+
+
+
 ##
 ## Z-Wave network views
 ##
@@ -275,10 +279,11 @@ def netinfo():
         abort(414)
     return ret_jajax(zwave.net.to_dict())
 
-# @TODO: arg passing for actions is not nice, alternatives?
 @rest.post("/net/action/<string:action>")
 def netaction(action):
     """exec an 'action', restricted to the listed ones (for now)"""
+    if action not in (NET_ACTIONS + NET_ATTRS):
+        return ret_jerr(404, "action: {} not found".format(action))
     if (zwave.net is None and action != "start") and not hasattr(zwave.net, action):
         abort(404)
 
@@ -296,11 +301,7 @@ def available_net_actions():
     if zwave.net is None:
         abort(414)
 
-    return ret_jajax([
-        "heal", "start", "stop", "home_id", "is_ready", "nodes_count",
-        "write_config", "get_scenes", "scenes_count", "test",
-        "sleeping_nodes_count", "state"
-    ])
+    return ret_jajax((NET_ACTIONS + NET_ATTRS))
 
 ##
 ## Z-Wave controller views
@@ -312,12 +313,13 @@ def ctrlaction(action, ctrl_idx=0):
         abort(415)
     if not zwave.net:
         abort(414)
-    if not hasattr(ctrl, action):
+    if action not in (CTRL_ACTIONS + CTRL_ATTRS):
         abort(404)
 
     ret = get_member(ctrl, action, request.args)
     if isinstance(ret, set):
         ret = list(sorted(ret))
+
     return ret_jajax({
         "returned": ret,
         "executed": action,
@@ -334,33 +336,14 @@ def available_ctrl_actions(ctrl_idx=0):
         abort(414)
 
     # @TODO: order these similar to the ones in node (also seperate POST/GET)
-    return ret_jajax([
-        "start", "stop", "add_node",  "assign_return_route", "cancel_command",
-        "capabilities", "device", "is_primary_controller", "stats",
-        "library_config_path", "library_description", "library_type_name",
-        "library_user_path", "library_version", "name", "node", "node_id",
-        "options", "owz_library_version", "python_library_config_version",
-    ])
-    # "exclude", "hard_reset", "soft_reset", "remove_node" <- intentionally left-out for now...
+    return ret_jajax((CTRL_ACTIONS + CTRL_ATTRS))
 
 @rest.get("/nodes")
 def nodelist():
     if not zwave.net:
         abort(414)
 
-    main_fields = ["node_id", "name", "location", "product_name", "manufacturer_name"]
-
-    fields = ["query_stage", "type", "specific", "product_type", "product_id", "manufacturer_id"]
-
-    status_props = ["is_awake", "is_beaming_device", "is_failed", "is_frequent_listening_device",
-      "is_info_received", "is_listening_device", "is_locked", "is_ready", "is_routing_device",
-      "is_security_device", "is_sleeping", "is_zwave_plus"]
-
-    props = ["basic", "capabilities", "command_classes", "device_type", "generic", "stats",
-             "max_baud_rate", "neighbors", "num_groups", "role", "security", "version"]
-    tmp = main_fields + fields + status_props + props;
-
-    return ret_jajax([to_json(zwave.get_node_details(node_id, tmp)) \
+    return ret_jajax([to_json(zwave.get_node_details(node_id, NODE_ATTRS)) \
                       for node_id in zwave.net.nodes])
 
 class Node(Resource):
@@ -369,15 +352,11 @@ class Node(Resource):
         for idx, grp in zwave[node_id].groups.items():
             my_groups[idx] = grp.to_dict()
             my_groups[idx]["index"] = idx
-        actions = [
-         "assign_return_route",  "heal", "network_update", "neighbor_update",
-         "refresh_info", "request_state", "send_information", "test"
-        ]
 
         is_ctrl = zwave[node_id].role == "Central Controller"
         return ret_ajax({
             "values": zwave[node_id].values,
-            "actions": actions,
+            "actions": NODE_ACTIONS,
             "groups": my_groups,
             "stats": zwave[node_id].stats,
             "is_ctrl": is_ctrl,
@@ -393,17 +372,15 @@ class Node(Resource):
 
 @rest.get("/node/actions")
 def node_actions():
-    actions = ["assign_return_route", "get_command_class_genres", "get_max_associations",
-               "get_stats_label", "has_command_class", "heal", "neighbor_update",
-               "network_update", "refresh_info", "request_state", "send_information", "test"]
-    return ret_jajax(actions)
+    return ret_jajax((NODE_ACTIONS + NODE_ATTRS))
 
 @rest.post("/node/<int:node_id>/action/<string:action>")
 def node_action(node_id, action):
     if node_id not in zwave:
         return ret_jerr(404, msg="node-id: {} does not exist".format(node_id))
 
-    # @TOOD: add list of possible node-actions
+    if action not in (NODE_ACTIONS + NODE_ATTRS):
+        return ret_jerr(404, msg="action: {} does not exist".format(action))
 
     node = zwave[node_id]
     ret = getattr(node, action)
