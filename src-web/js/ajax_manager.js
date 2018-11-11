@@ -80,6 +80,13 @@ class AjaxManager {
 	post(url, data, success_func=null) {
 		return this.generic_ajax("POST", url, data, success_func );
 	}
+	delete(url, data, success_func=null) {
+		return this.generic_ajax("DELETE", url, data, success_func );
+	}
+	put(url, data, success_func=null) {
+		return this.generic_ajax("PUT", url, data, success_func );
+	}
+
 
   map_nodes(cb_func) {
 		var log = this.log;
@@ -105,6 +112,26 @@ class AjaxManager {
 	net_action(act) {
 		return this.post("/net/action/" + act, {});
 	}
+
+
+	group_node_remove(node_id, group_idx, target_node_id) {
+		delete gob.nodes[node_id].groups[group_idx].associations[target_node_id];
+		gob.nodes[node_id].groups[group_idx].cur_count -= 1;
+		gob.nodes[node_id].groups[group_idx].cur_associations -= 1;
+		return this.delete("/node/" + node_id + "/group/" + group_idx, {
+			target_node_id: target_node_id
+		});
+	}
+
+	group_node_add(node_id, group_idx, target_node_id) {
+		gob.nodes[node_id].groups[group_idx].associations[target_node_id] = 0;
+		gob.nodes[node_id].groups[group_idx].cur_count += 1;
+		gob.nodes[node_id].groups[group_idx].cur_associations += 1;
+		return this.put("/node/" + node_id + "/group/" + group_idx, {
+			target_node_id: target_node_id
+		});
+	}
+
 
 	net_ctrl_action(act, kw_args) {
 		kw_args = (typeof kw_args == "undefined") ? {} : kw_args;
@@ -139,16 +166,16 @@ class AjaxManager {
 
 	node_all_details(node_id, cb_add_detail, cb_add_group, cb_add_action, cb_add_prop, cb_add_stat) {
 		var obj_this = this;
+
+		this.node_update_groups(node_id, cb_add_group);
+
 		return this.get("/node/" + node_id, {}, function (ret) {
 			/* all node details == all available node values */
 			var node = obj_this.get_node(node_id);
 			node.update_from_json(ret.data);
 
-			var fields = ["basic", "user", "system", "config", "groups",
-										"actions", "props", "stats", "ctrlstats"];
-
-			fields.forEach(
-				(field) => $("#node_details_" + field + "_content").html(""));
+			obj_this.node_clear_details(node_id, [
+				"basic", "user", "system", "config", "actions", "props", "stats", "ctrlstats"]);
 
 			Object.keys(node.values).forEach(
 				(value_id) => cb_add_detail(node_id, node.values[value_id]));
@@ -166,10 +193,59 @@ class AjaxManager {
 			Object.keys(node).forEach(
 				(prop_key) => cb_add_prop(node_id, prop_key, node[prop_key]));
 
-			Object.keys(node.groups).forEach(
-				(grp_id) => cb_add_group(node_id, node.groups[grp_id]));
+
 
 		});
 	}
+
+	node_clear_details(node_id, which) {
+		var fields = ["basic", "user", "system", "config", "groups",
+		              "actions", "props", "stats", "ctrlstats"];
+
+		if(which == "all" || typeof which == "undefined") {
+			fields.forEach(
+				(field) => $("#node_details_" + field + "_content").html(""));
+		} else {
+			which.forEach((field) => ((fields.findIndex((item) => (item == field)) > -1)
+				?	$("#node_details_" + field + "_content").html("")
+				: console.log("cannot clear detail field: " + field)));
+		}
+	}
+
+	/*node_update_values(node_id, cb_add_detail) {
+
+		@TODO TODO TODO -> and all other detail seen above...
+
+	}*/
+
+
+	node_update_groups(node_id, cb_add_group, no_ajax) {
+
+		if (no_ajax == true) {
+			var node = this.get_node(node_id);
+			this.node_clear_details(node_id, ["groups"]);
+			Object.keys(node.groups).forEach(
+				(grp_id) => cb_add_group(node_id, node.groups[grp_id]));
+			return true;
+		}
+
+		var obj_this = this;
+		return this.get("/node/" + node_id + "/groups", {}, function(ret) {
+			var node = obj_this.get_node(node_id);
+			var grp_data = {groups: ret.data};
+			node.update_from_json(grp_data);
+
+			obj_this.node_clear_details(node_id, ["groups"]);
+
+			Object.keys(node.groups).forEach(
+				(grp_id) => cb_add_group(node_id, node.groups[grp_id]));
+		});
+	}
+
+
+
+
+
+
 }
 

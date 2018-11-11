@@ -59,3 +59,12 @@ value_parse = new_parser()
 add = value_parse.add_argument
 add("data", required=True, help="The 'data' the value will be set to")
 
+group_parse = new_parser()
+add = group_parse.add_argument
+add("target_node_id", required=True, type=int, help="NodeID related to group")
+
+
+
+
+
+

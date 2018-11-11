@@ -54,6 +54,11 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 	height: 24px;
 }
 
+#node_details select.group_data_assoc_add_select {
+	width: 210px;
+	height: 20px;
+}
+
 #node_grid  {
     font-size: 0.75em;
 }
@@ -89,12 +94,36 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 }
 
 
-
-.val_data_label, .val_data_content, .val_data, .val_data_label_extra,
-.val_data_minmax, .val_data_extra_text, .group_data_label, .group_data_assoc,
-.action_node_link, .prop_data, .prop_data_content, .prop_data_label {
+.val_data_label, .val_data_content, .val_data, .val_data_label_extra,.group_cur_max
+.val_data_minmax, .val_data_extra_text, .group_data_label, .group_data_assoc, .group_data_assoc_add,
+.action_node_link, .prop_data, .prop_data_content, .prop_data_label, .group_data_assoc_icon {
 	padding: 2px;
 	font: 0.75em Helvetica;
+}
+
+.group_data_assoc, .group_data_assic_icon {
+	height: 20px;
+}
+
+.group_data_assoc_icon {
+		border: solid 1px #dddddd;
+    text-align: center;
+    width: 14px;
+    float: right;
+    display: block;
+    padding: 0;
+    margin: 0;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-weight: bold;
+    margin-top: 2px;
+    height: 10px;
+		cursor: pointer;
+		user-select: none;
+}
+
+.group_data_assoc_icon:hover {
+	background-color: #aaaaaa;
 }
 
 .group_data_box, .val_data_box, .prop_data_box, .action_data_box {
@@ -132,7 +161,7 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 	clear: both;
 }
 
-.val_data_label_extra {
+.val_data_label_extra, .group_cur_max {
 	float: right;
 }
 

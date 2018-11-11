@@ -85,6 +85,21 @@ class ZWave:
         self.home_id = self.net.home_id
         self.net.start()
 
+    def get_groups(self, node_id):
+        my_groups = {}
+        for idx, grp in self.get_node(node_id).groups.items():
+            my_groups[idx] = grp.to_dict()
+            my_groups[idx]["index"] = idx
+            my_groups[idx]["max_associations"] = grp.max_associations
+            my_groups[idx]["cur_associations"] = len(grp.associations)
+            my_groups[idx]["max_count"] = grp.max_associations
+            my_groups[idx]["cur_count"] = len(grp.associations)
+
+        return my_groups
+
+
+
+
 def get_member(src, attr_name, args):
     obj = getattr(src, attr_name)
     if callable(obj):

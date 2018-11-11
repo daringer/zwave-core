@@ -25,7 +25,7 @@ from openzwave.option import ZWaveOption
 from enums import NetState, OptionState
 
 ###### own
-from parsers import nodes_parse, opt_parse, value_parse
+from parsers import nodes_parse, opt_parse, value_parse, group_parse
 from zwave_cls import ZWave, get_member
 from ajax_builder import Ajax, ret_ajax, ret_jajax, ret_err, \
         ret_jerr, ret_msg, ret_jmsg
@@ -34,7 +34,7 @@ from utils import listify, to_json
 
 from consts import *
 
-DEBUG = True
+DEBUG = False
 
 
 app = Flask(__name__)
@@ -249,7 +249,7 @@ def list_routes():
         options = {}
         opt2str = {}
         for arg in rule.arguments:
-            if arg in ["num", "node_id", "value_id"]:
+            if arg in ["num", "node_id", "value_id", "index"]:
                 opt2str[arg] = (randint(12331, 32425), "int")
                 options[arg] = opt2str[arg][0]
             elif arg in ["member", "path"]:
@@ -346,22 +346,16 @@ def available_ctrl_actions(ctrl_idx=0):
 def nodelist():
     if not zwave.net:
         abort(414)
-
     return ret_jajax([to_json(zwave.get_node_details(node_id, NODE_ATTRS)) \
                       for node_id in zwave.net.nodes])
 
 class Node(Resource):
     def get(self, node_id):
-        my_groups = {}
-        for idx, grp in zwave[node_id].groups.items():
-            my_groups[idx] = grp.to_dict()
-            my_groups[idx]["index"] = idx
-
         is_ctrl = zwave[node_id].role == "Central Controller"
         return ret_ajax({
             "values": zwave[node_id].values,
             "actions": NODE_ACTIONS,
-            "groups": my_groups,
+            "groups": zwave.get_groups(node_id),
             "stats": zwave[node_id].stats,
             "is_ctrl": is_ctrl,
             "ctrl_stats": zwave.ctrl[0].stats if is_ctrl else ""
@@ -393,12 +387,50 @@ def node_action(node_id, action):
     return ret_jmsg(msg="Action: {} sent for node-id: {} returned: {}". \
                     format(action, node_id, str(ret)))
 
-#class NodeGroups(Resource):
-#    def get(self, node_id):
-#        return self.groups_to_dict()
-#
-#    def patch(self, node_id):
-#        pass
+
+@rest.get("/node/<int:node_id>/groups")
+def getgroups(node_id):
+    return ret_jajax(zwave.get_groups(node_id))
+
+class NodeGroup(Resource):
+    def get(self, node_id, index):
+        grp = zwave.get_groups(node_id).get(index)
+        if grp is not None:
+            return ret_ajax(grp)
+        return ret_err(404, "Group at index: {} in node_id: {}, not found". \
+                       format(index, node_id))
+
+    def put(self, node_id, index):
+        grp = zwave.get_groups(node_id).get(index)
+        if grp is None:
+           return ret_err(404, "Group at index: {} in node_id: {}, not found". \
+                       format(index, node_id))
+        target_node_id = group_parse.parse_args(strict=True).target_node_id
+        if target_node_id is None:
+            print ("no or bad data provided: {}".format(target_node_id))
+            abort(404)
+
+        zwave[node_id].groups[index].add_association(target_node_id)
+        return ret_msg(msg="added node_id: {} to group: {}". \
+                       format(target_node_id, index))
+
+    def delete(self, node_id, index):
+        grp = zwave[node_id].groups.get(index)
+        if grp is None:
+           return ret_err(404, "Group at index: {} in node_id: {}, not found". \
+                       format(index, node_id))
+        target_node_id = group_parse.parse_args(strict=True).target_node_id
+        if target_node_id is None:
+            print ("no or bad data provided: {}".format(target_node_id))
+            abort(404)
+
+        if target_node_id not in grp.associations:
+            return ret_err(404, "target_node_id: {} not found in grp: {}". \
+                           format(target_node_id, index))
+
+        zwave[node_id].groups[index].remove_association(target_node_id)
+        return ret_msg(msg="removed node_id: {} from group: {}". \
+                        format(target_node_id, index))
 
 #class NodeConfig(Resource):
 #    def get(self, node_id):
@@ -445,11 +477,10 @@ class NodeValue(Resource):
         return ret_msg(msg="data for value set successfully")
 
 api.add_resource(Options,       "/net/opts")
-api.add_resource(Node,          "/node/<int:node_id>")
-#api.add_resource(NodeGroups,    "/node/<int:node_id>/groups")
+api.add_resource(NodeGroup,     "/node/<int:node_id>/group/<int:index>")
 #api.add_resource(NodeConfig,    "/node/<int:node_id>/config")
 api.add_resource(NodeValue,     "/node/<int:node_id>/value/<int:value_id>")
-
+api.add_resource(Node,          "/node/<int:node_id>")
 
 zwave = ZWave(abort, default_signal_handler)
 

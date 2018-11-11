@@ -99,20 +99,63 @@ function add_stats(node_id, stat_key, stat_value, target_detail) {
 
 function add_group(node_id, group) {
 	var node = gob.manager.get_node(node_id);
+	var num_items = Object.keys(group.associations).length;
 	var key = `group_${node_id}_${group.index}`;
 	var html = `<div id=${key} class=group_data_box>
 	    <div class=group_data_label>
 		    <label for=${key}>${group.label}</label>
+				<div class=group_cur_max># ${group.cur_count} / ${group.max_count}</div>
 	  	</div>`;
 
-	if (Object.keys(group.associations).length == 0)
-		html += `<div id=${key}_assoc_placeholer class=group_data_assoc>n/a</div>`;
-	else
+	if (Object.keys(group.associations).length > 0)
+		//html += `<div id=${key}_assoc_placeholer class=group_data_assoc>(none)</div>`;
+	//else
 		for (var n_id in group.associations)
-			html += `<div id=${key}_assoc_${n_id} class=group_data_assoc>NodeID: ${n_id}</div>`;
+			html += `<div id=${key}_assoc_${n_id} class=group_data_assoc>- NodeID: ${n_id}
+				<div class=group_data_assoc_icon id=${key}_assoc_${n_id}_remove>-</div>
+			</div>`;
+
+	/* do not show select-dropdown and "+" icon if max assoiciations already reached here */
+	if (group.cur_count < group.max_count) {
+		var add_select_key = key + "_assoc_add";
+		var sel_cls = "group_data_assoc_add_select";
+		html += `<div class=group_data_assoc_add><form name=add_to_group>
+						 <select class=${sel_cls} id=${add_select_key}>
+						 <option value=none>[select node_id to add]</option>`;
+
+		for(var sub_node_id in gob.nodes)
+			if (!(sub_node_id in group.associations) && sub_node_id != node_id)
+				html += `<option value=${sub_node_id}>${sub_node_id}</option>`;
+		html += `</select><div class=group_data_assoc_icon id=${add_select_key}_link>+</div></form></div>`;
+	}
+
 	html += "</div><hr>";
 
   $("#node_details_groups_content").append(html);
+
+	if (group.cur_count < group.max_count) {
+		$("#" + add_select_key + "_link").click({node_id: node_id, group_idx: group.index, select: add_select_key}, function(ev) {
+			var target_node_id = $("#" + ev.data.select).val();
+			/* do nothing, if no node_id is selected... */
+			if (target_node_id == "none") {
+				var bg_base = $("#" + ev.data.select).css("background-color");
+				$("#" + ev.data.select).animate({"background-color": "#ff0000"}, 200).
+						animate({"background-color": bg_base}, 500);
+			} else {
+				gob.manager.group_node_add(ev.data.node_id, ev.data.group_idx, target_node_id);
+				gob.manager.node_update_groups(ev.data.node_id, add_group, true);
+			}
+		});
+	}
+
+	for (var n_id in group.associations) {
+		$("#" + key + "_assoc_" + n_id + "_remove").click(
+			{node_id: node_id, group_idx: group.index, target_node_id: n_id}, function(ev) {
+				gob.manager.group_node_remove(ev.data.node_id, ev.data.group_idx, ev.data.target_node_id);
+				gob.manager.node_update_groups(ev.data.node_id, add_group, true);
+		});
+	}
+
 }
 
 function add_detail(node_id, val) {

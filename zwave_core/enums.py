@@ -1,17 +1,6 @@
 from enum import IntEnum
 
 
-# @todo: return states or exceptions everywhere?1
-class ReturnState(IntEnum):
-    ok = 1
-
-    zwave_offline = 64
-    zwave_options_not_locked = 65
-
-    error = 128
-    unknown = 256
-
-
 class OptionState(IntEnum):
     editable = 1
     failed   = 32
