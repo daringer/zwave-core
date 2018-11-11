@@ -178,10 +178,15 @@ function add_detail(node_id, val) {
 		html += `<span name=${key} id=${key}_data class=val_data>${val.fancy_data}</span>`;
 
 	} else if (val.html_type == "select" || val.html_type == "binary") {
-		var innerhtml = val.data_items.map(function(my_val) {
-			var out = "<option " + ((my_val == val.data) ? " selected=selected" : "");
-			out += " >" + my_val + "</option>";
-			return out;
+		if (typeof val.data_items == "object" && val.data_items instanceof Array)
+		  var data_pairs = val.data_items.map((item) => [item, item])
+		else
+		  var data_pairs = Object.keys(val.data_items).map((key) => [key, val.data_items[key]])
+
+		var innerhtml = data_pairs.map(function(my_val, my_desc) {
+		  var out = `<option value='${my_val}'` + ((my_val == val.data) ? " selected=selected " : "");
+		  out += ">" + my_desc + "</option>";
+		  return out;
 		});
 		html += `<select name=${key} id=${key}_data class=val_data>${innerhtml}</select>`;
 		change_handler = true;
@@ -417,7 +422,7 @@ $( function() {
 	});
 
 	// init and connect to websocket-based events
-	var socket = io.connect("http://127.0.0.1:5000/websocket", {"transports": ["websocket"]});
+	var socket = io.connect("/websocket", {"transports": ["websocket"]});
 
 	// ---   WebSocket triggered    ---
 	//
