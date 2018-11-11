@@ -169,6 +169,7 @@ class AjaxManager {
 	set_node_field(node_id, field_name, field_value) {
 		var node = this.get_node(node_id);
 		var data = {field_name: field_name, field_value: field_value};
+		var log = this.log;
 		this.patch("/node/" + node_id, data, function(ret) {
 			log(`NodeID: (${node_id}) updated name (${field_name}) and location (${field_value})`);
 		});

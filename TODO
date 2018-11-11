@@ -63,4 +63,6 @@
 	- while using the frontend, use window.history.pushState("name", "title", "/frontend/show/x")
 		for e.g., detail views from nodes in order to be "re-load-able"
 
+	- newly included device shall directly be added to the node-jsgrid 
 
+	- overall it's time to do some proper event parsing and handling, right?

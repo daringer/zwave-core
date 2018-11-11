@@ -68,7 +68,7 @@ var IO = Object({
 			EventType: "<b>" + event_type + "</b>",
 			Content: text
 		}).then(function() {
-			$("#event_grid").jsGrid("sort", {field: "stamp", order: "desc"});
+			//$("#event_grid").jsGrid("sort", {field: "stamp", order: "desc"});
 		});
 	},
 
@@ -90,8 +90,11 @@ var IO = Object({
 			}
 			for (var key of keys) {
 			  if (key == "value") {
+	
+				  if (data.value != null && data.value == 255)
+					_mydata.push(`data.value: ${data.value}`)
 
-				  if (data.value != null && "value_id" in data.value)
+				  else if (data.value != null && "value_id" in data.value)
 	  				_mydata.push(`value_id: ${data.value.value_id}`);
 
 				  else if(data.value != null && "data" in data.value)
