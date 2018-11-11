@@ -25,7 +25,7 @@ from openzwave.option import ZWaveOption
 from enums import NetState, OptionState
 
 ###### own
-from parsers import nodes_parse, opt_parse, value_parse, group_parse
+from parsers import nodes_parse, opt_parse, value_parse, group_parse, node_field_parse
 from zwave_cls import ZWave, get_member
 from ajax_builder import Ajax, ret_ajax, ret_jajax, ret_err, \
         ret_jerr, ret_msg, ret_jmsg
@@ -363,10 +363,10 @@ class Node(Resource):
 
     def patch(self, node_id):
         node = zwave[node_id]
-        for key, val in request.args.items():
-            if key in ["name", "location", "product_name", "manufacturer_name"]:
-                node.set_field(key, val)
-        return ret_ajax(dict(node.to_dict()))
+        data = node_field_parse.parse_args(strict=True)
+        node.set_field(data.field_name, data.field_value)
+        return ret_msg(msg="field: {} successfully set to: {}". \
+                       format(data.field_name, data.field_value))
 
 @rest.get("/node/actions")
 def node_actions():

@@ -86,7 +86,9 @@ class AjaxManager {
 	put(url, data, success_func=null) {
 		return this.generic_ajax("PUT", url, data, success_func );
 	}
-
+	patch(url, data, success_func=null) {
+		return this.generic_ajax("PATCH", url, data, success_func );
+	}
 
   map_nodes(cb_func) {
 		var log = this.log;
@@ -161,6 +163,14 @@ class AjaxManager {
 		var log = this.log;
 		this.post("/node/" + node_id + "/value/" + value_id, postdata, function (ret) {
 			log(`Node: (${node_id}) uid: [${value_id}] set to: ${new_val}`);
+		});
+	}
+
+	set_node_field(node_id, field_name, field_value) {
+		var node = this.get_node(node_id);
+		var data = {field_name: field_name, field_value: field_value};
+		this.patch("/node/" + node_id, data, function(ret) {
+			log(`NodeID: (${node_id}) updated name (${field_name}) and location (${field_value})`);
 		});
 	}
 

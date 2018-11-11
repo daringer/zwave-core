@@ -36,7 +36,7 @@ $("#node_grid").jsGrid({
 	  height: "250px",
 
     inserting: false,
-    editing: false,
+    editing: true,
     sorting: true,
     paging: false,
     autoload: false,
@@ -47,22 +47,44 @@ $("#node_grid").jsGrid({
     //},
 
   fields: [
-    { name: "node_id",            title: "ID",                  type: "text", readOnly: true, width: 30 },
-    { name: "name",               title: "Name",                type: "text", width: 30},
+    { name: "node_id",            title: "ID",                  type: "text", editing: false, readOnly: true, width: 30 },
+    { name: "name",               title: "Name",                type: "text", width: 30 },
     { name: "location",           title: "Loc",                 type: "text", width: 40 },
-    { name: "query_stage",        title: "Query Stage",         type: "text", width: 40 },
-    { name: "type",               title: "Type (Specific)",     type: "text", readOnly: true },
+    { name: "query_stage",        title: "Query Stage",         type: "text", editing: false, readOnly: true, width: 40 },
+    { name: "type",               title: "Type (Specific)",     type: "text", editing: false, readOnly: true },
     //{ name: "specific",           title: "Sub-Type",            type: "text", readOnly: true, width: 45 },  //# "specific"
-    { name: "product_name",       title: "Product Name",        type: "text", readOnly: true },
-    { name: "product_type",       title: "Product Type (ID)",   type: "text", readOnly: true },
+    { name: "product_name",       title: "Product Name",        type: "text", editing: false, readOnly: true },
+    { name: "product_type",       title: "Product Type (ID)",   type: "text", editing: false, readOnly: true },
     //{ name: "product_id",         title: "Product ID",          type: "text", readOnly: true },
-    { name: "manufacturer_name",  title: "Maker Name (ID)",     type: "text", readOnly: true },
+    { name: "manufacturer_name",  title: "Maker Name (ID)",     type: "text", editing: false, readOnly: true },
     //{ name: "manufacturer_id",    title: "Maker ID",            type: "text", readOnly: true },
-    { name: "ctrl",               title: "",                    type: "text", readOnly: true},
-  ]
+    { name: "ctrl",               title: "",                    type: "control", editButton: true, deleteButton: false, width: 25},
+  ],
     //{ name: "Manufacturer Name", type: "checkbox", title: "Is Married", sorting: false },
     //{ name: "Product Name",      type: "select", width: 200 }, //items: countries, valueField: "Id", textField: "Name" },
 	  //{ name: "Name",              type: "text",   width: 150 }, //, validate: "required" },
+
+	onItemEditing: function(args) {
+		var node_id = args.item.node_id;
+		gob.manager.node_all_details(node_id, add_detail, add_group,
+			add_node_action, add_node_prop, add_stats).then(function() {
+				$(document).trigger("Frontend::UpdatedDetails");
+		});
+	},
+
+	onItemUpdating: function(args) {
+		var node_id = args.item.node_id;
+		var new_name = args.item.name;
+		var new_loc = args.item.location;
+
+		var node = gob.manager.get_node(node_id);
+		node.set_field("name", new_name);
+		node.set_field("location", new_loc);
+
+
+	},
+
+
 });
 
 //$("#node_details_grid").jsGrid({

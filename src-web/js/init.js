@@ -2,7 +2,7 @@
 
 function add_node(node) {
 		/* find 'someone' to be asked for all these html-ids */
-	  var node_link_id = "node_details_link_" + node.node_id;
+	  //var node_link_id = "node_details_link_" + node.node_id;
 
 		var my_node = gob.manager.new_node(node);
 
@@ -19,15 +19,15 @@ function add_node(node) {
         //"product_id": node.product_id,
         "manufacturer_name": node.manufacturer_name + " (" + node.manufacturer_id + ")",
         //"manufacturer_id": node.manufacturer_id,
-			  "ctrl": "<a href=# id=\"" + node_link_id + "\">show</a>"
-    }).then(function() {
+			  //"ctrl": "<a href=# id=\"" + node_link_id + "\">show</a>"
+    }); /*.then(function() {
 	  	$("#" + node_link_id).click(node.node_id, function(ev) {
 	  		gob.manager.node_all_details(ev.data, add_detail, add_group,
 					add_node_action, add_node_prop, add_stats).then(function() {
 						$(document).trigger("Frontend::UpdatedDetails");
 				});
 		  });
-    });
+    });*/
 }
 
 function add_node_action(node_id, act_id) {

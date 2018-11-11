@@ -9,6 +9,13 @@ class Node {
 		this.groups = {};
 		this.actions = {};
 
+		this.all_field_names =  ["name", "location"];
+
+	}
+
+	set_field(field_name, field_value) {
+		if (this.all_field_names.findIndex((f) => f == field_name) > -1)
+				gob.manager.set_node_field(this.node_id, field_name, field_value);
 	}
 
 	update_value (value_id, data) {

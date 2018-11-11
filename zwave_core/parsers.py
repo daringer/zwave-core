@@ -64,6 +64,11 @@ add = group_parse.add_argument
 add("target_node_id", required=True, type=int, help="NodeID related to group")
 
 
+node_field_parse = new_parser()
+add = node_field_parse.add_argument
+add("field_name", required=True, type=str, help="field name to be set with value")
+add("field_value", required=True, type=str, help="field value to be set for field 'name'")
+
 
 
 
