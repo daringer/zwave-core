@@ -1,49 +1,59 @@
 # Z-Wave Core - Complete, flexible, pluggable
-Access to your network from any automation with REST or publish your network as MQTT!
 
-Or you are simply looking to (finally) replace **ozwcp** to maintain your network hassle-free? here you go!
+* Maintain, troubleshoot, investigate the details of your Z-Wave network
+* You are simply looking to (finally) replace **ozwcp** to maintain your network hassle-free? here you go!
+* Access to your network from any automation with REST or publish your network as MQTT! (not yet available)
 
+The current status:
+* Z-Wave backend / REST API: **beta**
+* Browser Frontend: **alpha** 
+* exposing your Z-Wave network as MQTT client **in development, not yet usable**
 
-**classic warning:** this project is in active development, so theoretically there are chances that
-things go wrong and in the very, very unlikely but possible case there might be the chance that
-your nodes get somehow excluded or your controller might get hard-resettet.
+## Quickstart (to troubleshoot, maintain, check your existing Z-Wave network)
 
-Currently explicitly neither of both functionalities are included currently inside the frontend.
-The REST API already supports it technically.
+0) start somewhere, e.g., `cd /tmp` 
 
-## Quickstart
+1) `git clone git@github.com:daringer/zwave-core.git`
 
-1) get python > 3.5
-2) install the following packages (using pip)
+2) make sure you've python > 3.x installed
 
-	 * eventlet
-	 * flask
-	 * flask_restful
-	 * flask_socketio
-	 * jinja2
-	 * python-openzwave
-	 * pydispatch
+3) install venv using pip: `python -m pip install venv`
 
-3) ensure you know where your openzwave configuration directory is to be found,
-   for me it simply is `/etc/openzwave`
+4) create a fresh virtual environment and activate it:
+```bash
+python -m venv /tmp/zwave_core_venv
+source /tmp/zwave_core_venv/bin/activate
+```
 
-4) check if your controller serial device (something like `/dev/ttyACM0`) is writeable
+5) install the requirements: 
+```bash
+cd /tmp/zwave-core
+python -m pip install -r requirements.txt
+```
 
-5) if you would like zwave-core to use an already existing `zwcfg_<home_id>.xml` openzwave
-   cache file, make sure you have its path (i.e., the containing directory) noted
+6) locate your essential Z-Wave files and copy them into the zwave-core directory (this makes sure that you'll change nothing within your current Z-Wave using tool):
+```bash
+# for example for home-assistant
+cd ~/.homeassistant
+cp zwcfg_0xf5b17667.xml pyozw.sqlite zwscene.xml options.xml /tmp/zwave-core/
+```
 
-6) simply execute `start.py` from within the project directory using python:
-```python start.py```
+7) locate (and determine) your openzwave installation (flavor), see [at openzwave](https://github.com/techgaun/python-openzwave/). For me, I prefer the system-wide as having open-zwave installed through my pacman-ager. So for me its: `/etc/openzwave`
 
-7) start a browser and visit: [127.0.0.1:5000/frontend](http://127.0.0.1:5000/frontend)
+8) check if your controller serial device (something like `/dev/ttyACM0`) is writeable
 
-9) in the top left, enter your the three paths you noted before:
+9) simply run:
+```bash
+cd /tmp/zwave-core
+python zwave_core/start.py
+```
 
-  * configuration directory
-	* `device path`
-	* user path, i.e., directory containing your zwcfg<home_id>.xml`
+10) start a browser and visit: [127.0.0.1:5000/frontend](http://127.0.0.1:5000/frontend)
 
-9) click the `on` button below `network` watch the events flowing while initializeations are done
+Now to start the network, just make sure that the 4 input fields in the top left are correct.
+Controller device `/dev/ttyACM0`, openzwave database directory `/etc/openzwave`, user-dir is our current workdir, where we copied the openzwave files to for safety: `.`.
+
+Once done click "ON" in the top left corner and wait while watching the event-log being populated by the tasks the controller is executing...
 
 ## The Vision
 
