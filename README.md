@@ -9,7 +9,7 @@ The current status:
 * Browser Frontend: **alpha** 
 * exposing your Z-Wave network as MQTT client **in development, not yet usable**
 
-## Quickstart (to troubleshoot, maintain, check your existing Z-Wave network)
+## Quickstart
 
 0) start somewhere, e.g., `cd /tmp` 
 
