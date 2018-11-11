@@ -163,14 +163,17 @@ def default_signal_handler(sender, signal, *v, **kw):
 ###
 ### (web)page(s)
 ###
+PATH_TO_WEB = "src-web"
 @app.route("/static/<string:path>")
 @app.route("/static/js/<string:path>")
 def frontend_static(path):
+    js_path = os.path.join(PATH_TO_WEB, "js", path)
+    path = os.path.join(PATH_TO_WEB, path)
     if not os.path.exists(path):
-        if not os.path.exists("js/" + path):
+        if not os.path.exists(js_path):
             abort(404)
         else:
-            path = "js/" + path
+            path = js_path
 
     with open(path) as fd:
         data = fd.read()
@@ -184,7 +187,8 @@ def frontend_static(path):
 
 @app.route("/frontend")
 def frontend():
-    with open("frontend.html") as fd:
+    path = os.path.join(PATH_TO_WEB, "frontend.html")
+    with open(path) as fd:
         tmpl = Environment(loader=BaseLoader).from_string(fd.read())
     return tmpl.render()
 
