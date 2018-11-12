@@ -18,7 +18,10 @@ NODE_SUB_ACTIONS = {
   "refresh_info", "request_state", "send_information", "test"],
   "__hide": ["get_command_class_genres", "get_max_associations",
   "get_stats_label", "has_command_class"]}
-NODE_ACTIONS = NODE_SUB_ACTIONS["show"]
+NODE_WRAP_ACTIONS = {}
+NODE_ACTIONS = NODE_SUB_ACTIONS["show"] + list(NODE_WRAP_ACTIONS.keys())
+
+
 
 NET_SUB_ATTRS = {
   "main": ["home_id", "noes_count", "scenes_count", "state"],
@@ -29,7 +32,10 @@ NET_ATTRS = sum(NET_SUB_ATTRS.values(), [])
 NET_SUB_ACTIONS = {
   "show": ["heal", "start", "stop", "write_config", "get_scenes", "test" ],
   "__hide": []}
-NET_ACTIONS = NET_SUB_ACTIONS["show"]
+NET_WRAP_ACTIONS = {}
+NET_ACTIONS = NET_SUB_ACTIONS["show"] + list(NET_WRAP_ACTIONS.keys())
+
+
 
 CTRL_SUB_ATTRS = {
   "main": ["device", "stats", "name", "node", "node_id"],
@@ -40,7 +46,11 @@ CTRL_SUB_ATTRS = {
 CTRL_ATTRS = sum(CTRL_SUB_ATTRS.values(), [])
 
 CTRL_SUB_ACTIONS = {
-  "show": ["start", "stop", "add_node",  "assign_return_route", "cancel_command"],
-  "__hide": ["exclude", "hard_reset", "soft_reset", "remove_node"]}
-CTRL_ACTIONS = CTRL_SUB_ACTIONS["show"]
+  "show":    ["start", "stop", "add_node",  "assign_return_route", "cancel_command", "remove_node"],
+  "__hide":  ["hard_reset", "soft_reset"]
+}
+CTRL_WRAP_ACTIONS = {
+    "add_secure_node": lambda ctrl: ctrl.add_node(doSecurity=True)
+}
+CTRL_ACTIONS = CTRL_SUB_ACTIONS["show"] + list(CTRL_WRAP_ACTIONS.keys())
 

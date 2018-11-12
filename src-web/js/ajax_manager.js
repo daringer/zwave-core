@@ -9,7 +9,7 @@ class AjaxManager {
 		return IO.log(txt, stamp, log_type);
 	}
 
-	/** generic ajax call short-cut */
+// generic ajax call short-cut
 	generic_ajax(type, url, data, success_func=null) {
 		var base_msg = `${type} request to: <b>'${url}'</b>`;
 
@@ -45,7 +45,7 @@ class AjaxManager {
 		_log(`error api-call: ${url}${errcode}${msg}`, null, "err");
 	}
 
-	/** generic ajax return handler */
+// generic ajax return handler
 	generic_return_handler(ret, url, _log) {
 		var base_desc = "<b>'" + url + "'</b>";
 
@@ -73,7 +73,7 @@ class AjaxManager {
 		return out;
 	}
 
-	/** easy access get/post ajax calls */
+// easy access get/post ajax calls
 	get(url, data, success_func=null) {
 		return this.generic_ajax("GET", url, data, success_func );
 	}
@@ -107,15 +107,16 @@ class AjaxManager {
  			});
 	}
 
-	node_action(node_id, act) {
-		return this.post("/node/" + node_id + "/action/" + act, {});
-	}
-
 	net_action(act) {
 		return this.post("/net/action/" + act, {});
 	}
 
+// node stuff
+	node_action(node_id, act) {
+		return this.post("/node/" + node_id + "/action/" + act, {});
+	}
 
+// group association(s)
 	group_node_remove(node_id, group_idx, target_node_id) {
 		delete gob.nodes[node_id].groups[group_idx].associations[target_node_id];
 		gob.nodes[node_id].groups[group_idx].cur_count -= 1;
@@ -134,7 +135,7 @@ class AjaxManager {
 		});
 	}
 
-
+// node association(s)
 	net_ctrl_action(act, kw_args) {
 		kw_args = (typeof kw_args == "undefined") ? {} : kw_args;
 		return this.post("/net/ctrl/action/" + act, kw_args);
@@ -177,7 +178,6 @@ class AjaxManager {
 
 	node_all_details(node_id, cb_add_detail, cb_add_group, cb_add_action, cb_add_prop, cb_add_stat) {
 		var obj_this = this;
-
 		this.node_update_groups(node_id, cb_add_group);
 
 		return this.get("/node/" + node_id, {}, function (ret) {
@@ -229,7 +229,6 @@ class AjaxManager {
 
 	}*/
 
-
 	node_update_groups(node_id, cb_add_group, no_ajax) {
 
 		if (no_ajax == true) {
@@ -252,11 +251,6 @@ class AjaxManager {
 				(grp_id) => cb_add_group(node_id, node.groups[grp_id]));
 		});
 	}
-
-
-
-
-
 
 }
 

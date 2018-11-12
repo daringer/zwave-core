@@ -102,20 +102,18 @@ function add_group(node_id, group) {
 	var num_items = Object.keys(group.associations).length;
 	var key = `group_${node_id}_${group.index}`;
 	var html = `<div id=${key} class=group_data_box>
-	    <div class=group_data_label>
-		    <label for=${key}>${group.label}</label>
+			<div class=group_data_label>
+				<label for=${key}>${group.label}</label>
 				<div class=group_cur_max># ${group.cur_count} / ${group.max_count}</div>
-	  	</div>`;
+			</div>`;
 
 	if (Object.keys(group.associations).length > 0)
-		//html += `<div id=${key}_assoc_placeholer class=group_data_assoc>(none)</div>`;
-	//else
 		for (var n_id in group.associations)
 			html += `<div id=${key}_assoc_${n_id} class=group_data_assoc>- NodeID: ${n_id}
 				<div class=group_data_assoc_icon id=${key}_assoc_${n_id}_remove>-</div>
 			</div>`;
 
-	/* do not show select-dropdown and "+" icon if max assoiciations already reached here */
+	// do not show select-dropdown and "+" icon if max assoiciations already reached here
 	if (group.cur_count < group.max_count) {
 		var add_select_key = key + "_assoc_add";
 		var sel_cls = "group_data_assoc_add_select";
@@ -131,7 +129,7 @@ function add_group(node_id, group) {
 
 	html += "</div><hr>";
 
-  $("#node_details_groups_content").append(html);
+	$("#node_details_groups_content").append(html);
 
 	if (group.cur_count < group.max_count) {
 		$("#" + add_select_key + "_link").click({node_id: node_id, group_idx: group.index, select: add_select_key}, function(ev) {
@@ -140,7 +138,7 @@ function add_group(node_id, group) {
 			if (target_node_id == "none") {
 				var bg_base = $("#" + ev.data.select).css("background-color");
 				$("#" + ev.data.select).animate({"background-color": "#ff0000"}, 200).
-						animate({"background-color": bg_base}, 500);
+					animate({"background-color": bg_base}, 500);
 			} else {
 				gob.manager.group_node_add(ev.data.node_id, ev.data.group_idx, target_node_id);
 				gob.manager.node_update_groups(ev.data.node_id, add_group, true);
@@ -153,7 +151,7 @@ function add_group(node_id, group) {
 			{node_id: node_id, group_idx: group.index, target_node_id: n_id}, function(ev) {
 				gob.manager.group_node_remove(ev.data.node_id, ev.data.group_idx, ev.data.target_node_id);
 				gob.manager.node_update_groups(ev.data.node_id, add_group, true);
-		});
+			});
 	}
 
 }
@@ -302,19 +300,22 @@ $( function() {
 
 
 	// all static buttons, @TODO, @TODO
-	var not_impl = function() { alert("NOT IMPLEMENTED");  };
+	//var not_impl = function() { alert("NOT IMPLEMENTED");  };
 
 	buts.ctrl_inc.click(function()           { gob.manager.net_ctrl_action("add_node"); } );
-	//buts.ctrl_inc_sec.click(function() {  gob.manager.net_ctrl_action("add_node", {"doSecurity": true}); } );
-	buts.ctrl_inc_sec.click(function()       { not_impl(); } );
-	buts.ctrl_exclude.click(function()       { not_impl(); } );
+	buts.ctrl_inc_sec.click(function()       { gob.manager.net_ctrl_action("add_secure_node"); } );
+	buts.ctrl_exclude.click(function()       { gob.manager.net_ctrl_action("remove_node"); } );
 	buts.ctrl_cancel.click(function()        { gob.manager.net_ctrl_action("cancel_command"); } );
 	buts.ctrl_heal.click(function()          { gob.manager.net_action("heal"); } );
-	buts.ctrl_remove_failed.click(function() { not_impl(); } );
+
+	// actually does not belong here, but in the node list/jsgrid view
+	//buts.ctrl_remove_failed.click(function() { gob.manager.net_action("remove_failed_node"); } );
+	//buts.ctrl_remove_failed.click(function() { gob.manager.net_action("remove_failed_node"); } );
+
 	buts.get_state.click(function()          {
-		gob.manager.net_action("state");
-		alert("show me:");
-	} );
+			gob.manager.net_action("state");
+	});
+
 	buts.write_config.click(() => gob.manager.net_action("write_config"));
 
 	// fill defaults into input-fields

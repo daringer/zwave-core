@@ -69,7 +69,3 @@ add = node_field_parse.add_argument
 add("field_name", required=True, type=str, help="field name to be set with value")
 add("field_value", required=True, type=str, help="field value to be set for field 'name'")
 
-
-
-
-

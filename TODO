@@ -66,3 +66,17 @@
 	- newly included device shall directly be added to the node-jsgrid 
 
 	- overall it's time to do some proper event parsing and handling, right?
+
+----- HomeAssistant:
+
+- update entity registry via websocket, somehow hook to this and automate refactoring of all other files according to entity_id change....
+
+{type: "config/entity_registry/update", entity_id: "zwave.aussen_vorne_seite_unten_oben1", name: null,…}
+entity_id: "zwave.aussen_vorne_seite_unten_oben1"
+id: 19
+name: null
+new_entity_id: "zwave.aussen_vorne_seite_unten_oben"
+type: "config/entity_registry/update"
+
+
+https://github.com/home-assistant/home-assistant/blob/ca86755409a26c32dd5eb7ad513d6e6fb99fbc4e/homeassistant/helpers/entity_registry.py#L177

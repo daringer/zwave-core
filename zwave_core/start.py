@@ -218,11 +218,16 @@ class Options(Resource):
                 .set_state("options", OptionState.failed).render()
 
         p = zwave.raw_opts.device
-        if p is None or not os.path.exists(p) or \
-            (not open(p, "rb").readable()) or \
-            (not open(p, "wb").writable()):
-                print ("bad device path: {}".format(p))
-                return ret_err(404, "Could not open zwave serial device: {}".format(p))
+        try:
+          msg = "Could not open zwave serial device: {} [permissions?]".format(p)
+          if p is None or not os.path.exists(p) or \
+              (not open(p, "rb").readable()) or \
+              (not open(p, "wb").writable()):
+                  print ("bad device path: {}".format(p))
+                  return ret_err(404, msg)
+        except PermissionError as e:
+          return ret_err(404, msg + " Exception: " + str(e))
+
         try:
             zwave.set_options()
         except ZWaveException as e:
@@ -266,9 +271,6 @@ def list_routes():
         output.append(line)
     return ret_jajax(list(sorted(output)))
 
-
-
-
 ##
 ## Z-Wave network views
 ##
@@ -280,22 +282,22 @@ def list_signals():
 @rest.get("/net")
 def netinfo():
     if zwave.net is None:
-        abort(414)
+        return ret_jerr(404, "Network and/or Controller inactive")
     return ret_jajax(zwave.net.to_dict())
 
 @rest.post("/net/action/<string:action>")
 def netaction(action):
     """exec an 'action', restricted to the listed ones (for now)"""
     if action not in (NET_ACTIONS + NET_ATTRS):
-        return ret_jerr(404, "action: {} not found".format(action))
+        return ret_jerr(404, "Requested action: {} not available".format(action))
     if (zwave.net is None and action != "start") and not hasattr(zwave.net, action):
-        abort(404)
+        return ret_jerr(404, "Network and/or Controller inactive")
 
     ret = zwave.start() if action == "start" else \
         get_member(zwave.net, action, request.args)
 
     if zwave.net is None:
-        abort(414)
+        return ret_jerr(404, "Network and/or Controller inactive")
 
     return Ajax(data={"returned": ret, "executed": action}, jsonify=True) \
         .set_state("net", NetState(zwave.net.state)).render()
@@ -303,8 +305,7 @@ def netaction(action):
 @rest.get("/net/actions")
 def available_net_actions():
     if zwave.net is None:
-        abort(414)
-
+        return ret_jerr(404, "Network and/or Controller inactive")
     return ret_jajax((NET_ACTIONS + NET_ATTRS))
 
 ##
@@ -313,14 +314,25 @@ def available_net_actions():
 @rest.post("/net/ctrl/action/<string:action>")
 def ctrlaction(action, ctrl_idx=0):
     ctrl = zwave.ctrl[ctrl_idx] if len(zwave.ctrl) > ctrl_idx else None
-    if ctrl is None:
-        abort(415)
-    if not zwave.net:
-        abort(414)
+    if ctrl is None or not zwave.net:
+        return ret_jerr(404, "Network and/or Controller inactive")
     if action not in (CTRL_ACTIONS + CTRL_ATTRS):
-        abort(404)
+        return ret_jerr(404, "Requested action: {} not available".format(action))
 
-    ret = get_member(ctrl, action, request.args)
+    my_args = request.args
+    func = lambda c, act, args: get_member(c, act, args)
+    wrap = CTRL_WRAP_ACTIONS.get(action)
+    if wrap is not None:
+        if callable(wrap):
+            # either a callable() replacing the original call
+            func = wrap
+        else:
+            # or simply a (action, my_args) => (new_action, my_new_args) converter
+            action, my_args = wrap(ctrl, action, my_args)
+
+    ret = func(ctrl, action, my_args)
+    #ret = get_member(ctrl, action, my_args)
+
     if isinstance(ret, set):
         ret = list(sorted(ret))
 
@@ -330,14 +342,13 @@ def ctrlaction(action, ctrl_idx=0):
         "controller": ctrl.to_dict()
     })
 
+
 # @TODO: same as for network here w.r.t. arg passing
 @rest.get("/net/ctrl/actions")
 def available_ctrl_actions(ctrl_idx=0):
     ctrl = zwave.ctrl[ctrl_idx] if len(zwave.ctrl) > ctrl_idx else None
-    if ctrl is None:
-        abort(415)
-    if not zwave.net:
-        abort(414)
+    if ctrl is None or not zwave.net:
+        return ret_jerr(404, "Network and/or Controller inactive")
 
     # @TODO: order these similar to the ones in node (also seperate POST/GET)
     return ret_jajax((CTRL_ACTIONS + CTRL_ATTRS))
@@ -345,7 +356,8 @@ def available_ctrl_actions(ctrl_idx=0):
 @rest.get("/nodes")
 def nodelist():
     if not zwave.net:
-        abort(414)
+        return ret_jerr(404, "Network and/or Controller inactive")
+
     return ret_jajax([to_json(zwave.get_node_details(node_id, NODE_ATTRS)) \
                       for node_id in zwave.net.nodes])
 
@@ -375,10 +387,10 @@ def node_actions():
 @rest.post("/node/<int:node_id>/action/<string:action>")
 def node_action(node_id, action):
     if node_id not in zwave:
-        return ret_jerr(404, msg="node-id: {} does not exist".format(node_id))
+        return ret_jerr(404, "node-id: {} does not exist".format(node_id))
 
     if action not in (NODE_ACTIONS + NODE_ATTRS):
-        return ret_jerr(404, msg="action: {} does not exist".format(action))
+        return ret_jerr(404, "Requested action: {} not available".format(action))
 
     node = zwave[node_id]
     ret = getattr(node, action)

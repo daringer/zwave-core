@@ -97,9 +97,6 @@ class ZWave:
 
         return my_groups
 
-
-
-
 def get_member(src, attr_name, args):
     obj = getattr(src, attr_name)
     if callable(obj):
