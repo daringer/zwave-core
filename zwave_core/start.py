@@ -135,6 +135,9 @@ sig_queue = Queue()
 
 # this by far does not look trustworthy,
 # @TODO: realize a less fear-driven solution
+# @TODO: also need serious pre-parsing and handling of events on server side!
+# @TODO: means we have to understand every single signal and send only a condensed
+#        version to the frontend, there no parsing should happen, just visualization!
 def default_signal_handler(sender, signal, *v, **kw):
     """Signal header for the 'louie' Z-Wave emitted signals"""
     global sig_queue #, sig_archive

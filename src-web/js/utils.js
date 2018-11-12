@@ -90,7 +90,7 @@ var IO = Object({
 			}
 			for (var key of keys) {
 			  if (key == "value") {
-	
+
 				  if (data.value != null && data.value == 255)
 					_mydata.push(`data.value: ${data.value}`)
 
@@ -100,8 +100,14 @@ var IO = Object({
 				  else if(data.value != null && "data" in data.value)
   					_mydata.push(`value_data: ${data.value.data}`);
 
-			  } else if (key == "node" && data.node != null && "node_id" in data.node) {
-				  _mydata.push(`node_id: ${data.node.node_id}`);
+			  } else if (key == "node" && data.node != null) {
+
+					if (data.node != "ZWaveController" && "node_id" in data.node)
+					  _mydata.push(`node_id: ${data.node.node_id}`);
+					else
+						_mydata.push("node: ZWaveController");
+
+
 
 			  } else if (key != "event_type" && key != "args") {
 					if (data[key] == null)

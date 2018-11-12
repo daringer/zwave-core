@@ -18,32 +18,18 @@ class Node {
 				gob.manager.set_node_field(this.node_id, field_name, field_value);
 	}
 
+	has_value_id(value_id) {
+		return (value_id in this.values);
+	}
+
 	update_value (value_id, data) {
-		var changed = false;
-		if (!(value_id in this.values)) {
-			IO.err(`error : ${value_id} not in node's values`);
-			return changed;
-		}
 
-		if (!("data" in this.values[value_id])) {
-			IO.err(`error updating value with id: ${value_id}, no 'data' member found...`);
-			return changed;
-		}
+		if (!(value_id in this.values) || (!("data" in this.values[value_id])))
+			this.values[value_id] = new Object({data: null});
 
-		var val = this.values[value_id];
-		if (val.data != data) {
-			//this.values[value_id].data = data;
-			val.data = data;
-			//@TODO: check for successful data set
-			//IO.err(`set value not saved: '${data}', or not accepted, old: ${old_data}`);
-			//return changed;
-			IO.log(`verified newly set value: ${data}`);
-			changed = true;
-			this.last_updated = Date.now();
-		} else
-			IO.warn(`new value-data: ${data} is equal to the old one, no changes done!`);
-
-		return changed;
+		this.values[value_id].data = data;
+		this.last_updated = Date.now();
+		IO.log(`set value: ${data}`);
 	}
 
 	update_from_json (json) {

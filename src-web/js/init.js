@@ -371,6 +371,12 @@ $( function() {
 		var base_id = `#node_${node.node_id}_${val.value_id}`;
 		var data_id = base_id + "_data";
 
+	  // @TODO: need explicit sepearation "load-from-js-cache" and "load-from-backend"
+		//
+		/*if (!(node.has_value_id(val.value_id))) {
+			7gob.manager.get_node(node.node_id);
+		}*/
+
 		// only fade grey, if no change, on change: fade to red
 		var to_col = "#ff0000";
 		if (!node.update_value(val.value_id, new_data))
