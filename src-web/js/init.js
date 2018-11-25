@@ -181,10 +181,12 @@ function add_detail(node_id, val) {
 		else
 		  var data_pairs = Object.keys(val.data_items).map((key) => [key, val.data_items[key]])
 
-		var innerhtml = data_pairs.map(function(my_val, my_desc) {
-		  var out = `<option value='${my_val}'` + ((my_val == val.data) ? " selected=selected " : "");
-		  out += ">" + my_desc + "</option>";
-		  return out;
+		var innerhtml = data_pairs.map(function(my_val) {
+      var opt_key = my_val[0];
+      var opt_val = (my_val[1] === true || my_val[1] === false) ? ((my_val[1] === true) ? "on" : "off" ) : my_val[1];
+      var out = `<option value='${opt_key}'` + ((opt_val == val.data) ? " selected=selected " : "");
+      out += ">" + opt_val + "</option>";
+      return out;
 		});
 		html += `<select name=${key} id=${key}_data class=val_data>${innerhtml}</select>`;
 		change_handler = true;
