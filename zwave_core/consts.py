@@ -46,7 +46,7 @@ CTRL_SUB_ATTRS = {
 CTRL_ATTRS = sum(CTRL_SUB_ATTRS.values(), [])
 
 CTRL_SUB_ACTIONS = {
-  "show":    ["start", "stop", "add_node",  "assign_return_route", "cancel_command", "remove_node"],
+  "show":    ["start", "stop", "add_node",  "assign_return_route", "cancel_command", "remove_node", "create_new_primary"],
   "__hide":  ["hard_reset", "soft_reset"]
 }
 CTRL_WRAP_ACTIONS = {
