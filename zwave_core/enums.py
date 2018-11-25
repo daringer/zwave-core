@@ -17,4 +17,7 @@ class NetState(IntEnum):
     awaked    = 7
     ready     = 10
 
+class FrontendAction(IntEnum):
+    update_value = 1
+    add_value = 2
 

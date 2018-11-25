@@ -2,7 +2,7 @@ import functools
 import os
 import urllib
 from enum import IntEnum
-from time import time
+from time import time, sleep
 from uuid import uuid4
 import json
 
@@ -22,7 +22,8 @@ from openzwave.network import ZWaveNetwork
 from openzwave.controller import ZWaveController
 from openzwave.option import ZWaveOption
 
-from enums import NetState, OptionState
+from enums import NetState, OptionState, FrontendAction
+
 
 ###### own
 from parsers import nodes_parse, opt_parse, value_parse, group_parse, node_field_parse
@@ -34,7 +35,7 @@ from utils import listify, to_json
 
 from consts import *
 
-DEBUG = False
+DEBUG = True
 
 
 app = Flask(__name__)
@@ -133,6 +134,57 @@ rest = _rest()
 sig_queue = Queue()
 #sig_archive = {}
 
+
+class SignalManager(object):
+    def __init__(self):
+        pass
+
+    def parse_signal(self, when, sender, sig, uuid, more_args, more_kw):
+        print (when)
+        print (sender)
+        print (sig)
+        print (uuid)
+        print (more_args)
+        print (more_kw)
+
+        out = self.trim(more_kw)
+        out["sender"] = sender
+        out["signal"] = sig
+        out["uuid"] = uuid
+        out["stamp"] = when
+
+        print("dfsjoidfsoi", str(sender))
+
+        if str(sender) == "_Anonymous":
+            del out["sender"]
+
+        if sig == "ValueChanged":
+            out["frontend_action"] = FrontendAction.update_value
+        elif sig == "ValueAdded":
+            out["frontend_action"] = FrontendAction.add_value | FrontendAction.update_value
+
+        return out
+
+
+    def trim(self, more_kw):
+        out = {}
+        for key, value in more_kw.items():
+            if key == "network":
+                pass
+            elif key == "node":
+                out["node_id"] = value.node_id
+            elif key == "value":
+                out["value_id"] = value.value_id
+                out["value_data"] = value.data
+            else:
+                out[key] = value
+        return out
+
+
+
+sig_manager = SignalManager()
+
+
 # this by far does not look trustworthy,
 # @TODO: realize a less fear-driven solution
 # @TODO: also need serious pre-parsing and handling of events on server side!
@@ -140,24 +192,24 @@ sig_queue = Queue()
 #        version to the frontend, there no parsing should happen, just visualization!
 def default_signal_handler(sender, signal, *v, **kw):
     """Signal header for the 'louie' Z-Wave emitted signals"""
-    global sig_queue #, sig_archive
+    global sig_queue, sig_manager #, sig_archive
     if DEBUG:
         print ("DEFAULT HANDLER:", signal)
 
-    x = {"stamp": time(), "sender": str(sender), "event_type": signal,
-         "uuid": uuid4().int % ((2**32)-1) }
+    to_send = sig_manager.parse_signal(time(), sender, signal, uuid4().int % ((2**32)-1), v, kw)
 
     while True:
         try:
-            x.update(kw)
             if DEBUG:
-                print ("ENQUEING:", x)
-            sig_queue.put(to_json(x, max_depth=3), timeout=5)
+                print ("ENQUEING:", to_send)
+            sig_queue.put(to_send, timeout=5)
             #sig_archive[x["uuid"]] = x
             break
         except Full:
             if DEBUG:
                 print ("ENQUE failed, retrying...")
+            # queue full, wait a little
+            sleep(1.0)
             continue
     return True
 

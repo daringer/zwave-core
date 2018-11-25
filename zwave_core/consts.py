@@ -54,3 +54,7 @@ CTRL_WRAP_ACTIONS = {
 }
 CTRL_ACTIONS = CTRL_SUB_ACTIONS["show"] + list(CTRL_WRAP_ACTIONS.keys())
 
+
+# @TODO: add consts for value and use them
+VALUE_SUB_ATTRS = {}
+

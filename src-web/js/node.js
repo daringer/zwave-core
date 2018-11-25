@@ -27,9 +27,15 @@ class Node {
 		if (!(value_id in this.values) || (!("data" in this.values[value_id])))
 			this.values[value_id] = new Object({data: null});
 
+		if (data === true)
+			data = "on";
+		if (data === false)
+			data = "off";
+
 		this.values[value_id].data = data;
 		this.last_updated = Date.now();
 		IO.log(`set value: ${data}`);
+		return data;
 	}
 
 	update_from_json (json) {

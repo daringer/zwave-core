@@ -182,8 +182,13 @@ function add_detail(node_id, val) {
 		  var data_pairs = Object.keys(val.data_items).map((key) => [key, val.data_items[key]])
 
 		var innerhtml = data_pairs.map(function(my_val) {
-      var opt_key = my_val[0];
-      var opt_val = (my_val[1] === true || my_val[1] === false) ? ((my_val[1] === true) ? "on" : "off" ) : my_val[1];
+			if (my_val[1] === true || my_val[1] === false || my_val[0] === false || my_val[0] === true) {
+      	var opt_key = ((my_val[1] === true) ? "on" : "off" );
+      	var opt_val = ((my_val[1] === true) ? "on" : "off" );
+      } else {
+        var opt_key = my_val[0];
+        var opt_val = my_val[1];
+			}
       var out = `<option value='${opt_key}'` + ((opt_val == val.data) ? " selected=selected " : "");
       out += ">" + opt_val + "</option>";
       return out;
@@ -360,31 +365,15 @@ $( function() {
 	// node value changed sig-handler...
 	$( document ).on("ZWave::ValueChanged", function(ev, data) {
 
-    // Expected:
-    // - data.value (full dict)
-    // - data.node (full dict)
-    // - data.value.data (new to-be-set data)
-
-		var node = gob.manager.get_node(data.node.node_id);
-		var val = data.value;
-		var new_data = data.value.data;
-		// find 'someone' to be asked for all these ugly html-ids
-		// (maybe the buttons and inputs are not so bad at all)
-		var base_id = `#node_${node.node_id}_${val.value_id}`;
+		var base_id = `#node_${data.node_id}_${data.value_id}`;
 		var data_id = base_id + "_data";
-
-	  // @TODO: need explicit sepearation "load-from-js-cache" and "load-from-backend"
-		//
-		/*if (!(node.has_value_id(val.value_id))) {
-			7gob.manager.get_node(node.node_id);
-		}*/
+		var node = gob.manager.get_node(data.node_id);
 
 		// only fade grey, if no change, on change: fade to red
-		var to_col = "#ff0000";
-		if (!node.update_value(val.value_id, new_data))
-			to_col = "#666666";
-		else
-			$(data_id).val(new_data.toString());
+		//var to_col = "#ff0000";
+		var to_col = "#666666";
+		var new_data = node.update_value(data.value_id, data.value_data);
+		$(data_id).val(new_data);
 
 		// housekeeping
 		var bg_base = $(base_id).css("background-color");
@@ -441,29 +430,16 @@ $( function() {
 	// main non-request a.k.a. push-based server-to-client communication path
 	// each ZWave-signal and other pushed messages arrive here
 	socket.on("message",    function(data) {
-		// @TODO: do not touch, do not understand, eventlets hate me, @FIXME
-		// -> need better concept(s) here, if websocket should persist,
-		// step 1) do not rely on the existance of a 'stamp' as a decision basis :D
-		if (data.stamp) {
-			// each 'event_type' triggers another JS event
-			$( document ).trigger( "ZWave::" + data.event_type, data);
+		// each 'signale' triggers another JS event
+		$( document ).trigger( "ZWave::" + data.signal, data);
+		
+		var msg = Object.keys(data).map((key) => `${key}: ${data[key]}`);
 
-			// feed the logger / event-log
-			var txt = (data.sender == "_Anonymous") ? "" : ("<b>From:</b> " + data.sender);
-			if (data.node_id)
-				txt += ` <b>NodeID:</b> ${data.node_id}`;
-			if (data.value)
-				txt += ` <b>Value:</b> ${DumpObject(data.value)} <b>value_id:</b> ${data.value.value_id}`;
+		if (!gob.debug)
+			IO.log(msg, Date.now(), data["signal"]);
+		else
+			IO.debug(msg);
 
-			// if global debug-mode is active, push any log into .debug() for higher verbosity
-			if (!gob.debug)
-				IO.log(txt, Date.now(), data.event_type);
-			else
-				IO.debug(data);
-
-		// yes, no 'stamp' aaand well, just dump it to .debug() for now...
-		} else
-			IO.debug(data);
 	});
 
   // jquery-ui init(s)
