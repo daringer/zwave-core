@@ -28,7 +28,7 @@ $("#event_grid").jsGrid({
 		{ name: "stamp",     type: "number",                    visible: false },
 		//{ name: "Date",      type: "text",                    width: 32 },
 		{ name: "Time",      type: "text",                      width: 40 },
-		{ name: "EventType", type: "text", title: "Event Type", width: 55 },
+		{ name: "Event",     type: "text",      title: "Event", width: 55 },
 		{ name: "Content",   type: "text",                      width: 220 },
 	],
 
@@ -66,7 +66,7 @@ $("#node_grid").jsGrid({
 		{ name: "product_name",       title: "Product Name",        type: "text", editing: false, readOnly: true },
 		{ name: "product_type",       title: "Product Type (ID)",   type: "text", editing: false, readOnly: true },
 		{ name: "manufacturer_name",  title: "Maker Name (ID)",     type: "text", editing: false, readOnly: true },
-		{ name: "ctrl",               title: "",                    type: "control", editButton: true, deleteButton: false, width: 25},
+		{ name: "ctrl",               title: "",                    type: "control", editButton: true, deleteButton: true, width: 25},
 	],
 
 	onItemEditing: function(args) { },
@@ -79,6 +79,15 @@ $("#node_grid").jsGrid({
 		var node = gob.manager.get_node(node_id);
 		node.set_field("name", new_name);
 		node.set_field("location", new_loc);
+	},
+
+	deleteConfirm: "Sends 'remove failed node', are you sure?",
+	controller: {
+		deleteItem: function(args) {
+			var event = jQuery.Event("Frontend::DeleteNode");
+			event.node_id = args.node_id;
+			$(document).trigger(event);
+		}
 	},
 
 	rowClick: function(args) {

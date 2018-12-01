@@ -40,6 +40,9 @@ class ZWave:
         out = self.net.nodes.get(node_id)
         return out
 
+    def get_main_ctrl(self):
+        return None if len(self.ctrl) == 0 else self.ctrl[0]
+
     def __contains__(self, node_id):
         return node_id in self.net.nodes
 
@@ -97,7 +100,7 @@ class ZWave:
 
         return my_groups
 
-def get_member(src, attr_name, args):
+def get_member(src, attr_name, args, env):
     obj = getattr(src, attr_name)
     if callable(obj):
         kw = {}

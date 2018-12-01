@@ -49,9 +49,12 @@ var log_types = Object({
 
 var IO = Object({
 
-	log: function(text, stamp, event_type) {
+	log: function(text, stamp, event_type, event_uuid) {
 		if (typeof stamp === "undefined" || stamp == null)
 			stamp = Date.now();
+
+		if (typeof event_uuid == "undefined" || event_uuid == null)
+			event_uuid = "n/a";
 
 		var d = new Date(stamp);
 		if (typeof event_type === "undefined" || event_type == null)
@@ -65,23 +68,21 @@ var IO = Object({
 			stamp: stamp,
 			Date: d.strftime("%d.%m.%Y"),
 			Time: d.strftime("%H:%M:%S::") + stamp.toString().slice(-3),
-			EventType: "<b>" + event_type + "</b>",
+			Event: "<b alt=" + event_uuid + " >" + event_type + "</b>",
 			Content: text
-		}).then(function() {
-			//$("#event_grid").jsGrid("sort", {field: "stamp", order: "desc"});
-		});
+		})
 	},
 
 	err: function(text, stamp) {
-		this.log(text, null, "err");
+		this.log(text, null, "err", "n/a");
 	},
 
 	warn: function(text, stamp) {
-		this.log(text, null, "warn");
+		this.log(text, null, "warn", "n/a");
 	},
 
 	debug: function(data) {
-		this.log(data.join(", "), Date.now(), data.signal);
+		this.log(data.join(", "), data.stamp,  data.signal, data.uuid);
 	}
 
 });

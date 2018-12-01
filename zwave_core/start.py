@@ -136,24 +136,23 @@ sig_queue = Queue()
 
 
 class SignalManager(object):
+    none_repl = "n/a"
+
     def __init__(self):
         pass
 
     def parse_signal(self, when, sender, sig, uuid, more_args, more_kw):
-        print (when)
-        print (sender)
-        print (sig)
-        print (uuid)
-        print (more_args)
-        print (more_kw)
+        if DEBUG:
+            print ("\n\n")
+            print ("---- SignalManager ----")
+            print ("when:", when, "sender:", sender, "sig:", sig, "uuid:", uuid)
+            print ("args:", more_args, more_kw)
 
         out = self.trim(more_kw)
         out["sender"] = sender
         out["signal"] = sig
         out["uuid"] = uuid
         out["stamp"] = when
-
-        print("dfsjoidfsoi", str(sender))
 
         if str(sender) == "_Anonymous":
             del out["sender"]
@@ -163,24 +162,37 @@ class SignalManager(object):
         elif sig == "ValueAdded":
             out["frontend_action"] = FrontendAction.add_value | FrontendAction.update_value
 
+        if DEBUG:
+            print("PARSED:", out)
+
         return out
 
 
     def trim(self, more_kw):
         out = {}
         for key, value in more_kw.items():
+            if value is None or value == 'None' or value == 'None.':
+                out[key] = self.none_repl
+                continue
+
             if key == "network":
                 pass
+            elif key == "controller":
+                try:
+                    out["ctrl_node_id"]  = str(value.node_id)
+                except Exception as e:
+                    out["ctrl_node_id"] = "<get failed>"
+                    out["ctrl_node_id_error"] = str(e)
             elif key == "node":
                 out["node_id"] = value.node_id
+            elif key == "node_id" and value == 0:
+                out[key] = self.none_repl
             elif key == "value":
                 out["value_id"] = value.value_id
                 out["value_data"] = value.data
             else:
-                out[key] = value
+                out[key] = str(value)
         return out
-
-
 
 sig_manager = SignalManager()
 
@@ -213,6 +225,35 @@ def default_signal_handler(sender, signal, *v, **kw):
             continue
     return True
 
+
+
+
+def action_handler(attrs, sub_act_dct, wrap_dct, action, args, src, zwave_obj):
+    if DEBUG:
+        print(f"action_handler with action: {action} and args: {args}")
+    # found in regular action list
+    if action in sub_act_dct["show"]:
+        if DEBUG:
+            print (f"EXECUTING: {action} using args: {args}")
+        return get_member(src, action, args, zwave_obj)
+
+    wrap = wrap_dct.get(action)
+    if wrap is not None:
+        if callable(wrap):
+            if DEBUG:
+                print (f"WRAPPING: {action} using args: {args} as callable node_id: {src and src.node_id}")
+            # either a callable() replacing the original call
+            return wrap(src, action, args, zwave_obj)
+        else:
+            # or simply a (action, my_args) => (new_action, my_new_args) converter
+            if DEBUG:
+                print (f"WRAPPING: {action} using args: {args} as converter")
+            new_action, new_args = wrap(src, action, args, zwave_obj)
+            return get_member(src, new_action, new_args, zwave_obj)
+
+    # RAISE exception here
+    print (f"ACTION HANDLER: failed act: {action} args: {args}")
+    return None
 
 
 ###
@@ -345,11 +386,11 @@ def netaction(action):
     """exec an 'action', restricted to the listed ones (for now)"""
     if action not in (NET_ACTIONS + NET_ATTRS):
         return ret_jerr(404, "Requested action: {} not available".format(action))
-    if (zwave.net is None and action != "start") and not hasattr(zwave.net, action):
+    if (zwave.net is None and action != "start") and not action in NET_ACTIONS:
         return ret_jerr(404, "Network and/or Controller inactive")
 
-    ret = zwave.start() if action == "start" else \
-        get_member(zwave.net, action, request.args)
+    ret = action_handler(NET_ATTRS, NET_SUB_ACTIONS, NET_WRAP_ACTIONS, action, request.args,
+                         zwave.net, zwave)
 
     if zwave.net is None:
         return ret_jerr(404, "Network and/or Controller inactive")
@@ -374,19 +415,8 @@ def ctrlaction(action, ctrl_idx=0):
     if action not in (CTRL_ACTIONS + CTRL_ATTRS):
         return ret_jerr(404, "Requested action: {} not available".format(action))
 
-    my_args = request.args
-    func = lambda c, act, args: get_member(c, act, args)
-    wrap = CTRL_WRAP_ACTIONS.get(action)
-    if wrap is not None:
-        if callable(wrap):
-            # either a callable() replacing the original call
-            func = wrap
-        else:
-            # or simply a (action, my_args) => (new_action, my_new_args) converter
-            action, my_args = wrap(ctrl, action, my_args)
-
-    ret = func(ctrl, action, my_args)
-    #ret = get_member(ctrl, action, my_args)
+    ret = action_handler(CTRL_ATTRS, CTRL_SUB_ACTIONS, CTRL_WRAP_ACTIONS, action, request.args,
+                         zwave.get_main_ctrl(), zwave)
 
     if isinstance(ret, set):
         ret = list(sorted(ret))
@@ -447,10 +477,9 @@ def node_action(node_id, action):
     if action not in (NODE_ACTIONS + NODE_ATTRS):
         return ret_jerr(404, "Requested action: {} not available".format(action))
 
-    node = zwave[node_id]
-    ret = getattr(node, action)
-    if callable(ret):
-        ret = ret()
+    ret = action_handler(NODE_ATTRS, NODE_SUB_ACTIONS, NODE_WRAP_ACTIONS, action, request.args,
+                         zwave.get_node(node_id), zwave)
+
     return ret_jmsg(msg="Action: {} sent for node-id: {} returned: {}". \
                     format(action, node_id, str(ret)))
 

@@ -15,10 +15,12 @@ NODE_ATTRS = sum(NODE_SUB_ATTRS.values(), [])
 
 NODE_SUB_ACTIONS = {
   "show":   ["assign_return_route",  "heal", "network_update", "neighbor_update",
-  "refresh_info", "request_state", "send_information", "test"],
+             "refresh_info", "request_state", "send_information", "test"],
   "__hide": ["get_command_class_genres", "get_max_associations",
-  "get_stats_label", "has_command_class"]}
-NODE_WRAP_ACTIONS = {}
+             "get_stats_label", "has_command_class"]}
+NODE_WRAP_ACTIONS = {
+  "remove_failed": lambda node, action, args, zwave: zwave.ctrl[0].remove_failed_node(node.node_id)
+}
 NODE_ACTIONS = NODE_SUB_ACTIONS["show"] + list(NODE_WRAP_ACTIONS.keys())
 
 
@@ -30,9 +32,11 @@ NET_SUB_ATTRS = {
 NET_ATTRS = sum(NET_SUB_ATTRS.values(), [])
 
 NET_SUB_ACTIONS = {
-  "show": ["heal", "start", "stop", "write_config", "get_scenes", "test" ],
+  "show": ["heal", "stop", "write_config", "get_scenes", "test" ],
   "__hide": []}
-NET_WRAP_ACTIONS = {}
+NET_WRAP_ACTIONS = {
+    "start": lambda net, action, args, zwave: zwave.start()
+}
 NET_ACTIONS = NET_SUB_ACTIONS["show"] + list(NET_WRAP_ACTIONS.keys())
 
 
@@ -47,10 +51,10 @@ CTRL_ATTRS = sum(CTRL_SUB_ATTRS.values(), [])
 
 CTRL_SUB_ACTIONS = {
   "show":    ["start", "stop", "add_node",  "assign_return_route", "cancel_command", "remove_node", "create_new_primary"],
-  "__hide":  ["hard_reset", "soft_reset"]
+  "__hide":  ["hard_reset", "soft_reset", "remove_failed_node"]
 }
 CTRL_WRAP_ACTIONS = {
-    "add_secure_node": lambda ctrl: ctrl.add_node(doSecurity=True)
+    "add_secure_node": lambda ctrl, action, args, zwave: ctrl.add_node(doSecurity=True)
 }
 CTRL_ACTIONS = CTRL_SUB_ACTIONS["show"] + list(CTRL_WRAP_ACTIONS.keys())
 

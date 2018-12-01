@@ -403,6 +403,12 @@ $( function() {
 				animate({"background-color": bg_data}, 500);
 	});
 
+	// node list, delete
+	$( document ).on("Frontend::DeleteNode", function(ev) {
+		gob.manager.node_action(ev.node_id, "remove_failed");
+	});
+
+
 	// details layout housekeeping
 	$( document ).on("Frontend::UpdatedDetails", function(ev) {
 		var fields = ["basic", "user", "system", "config", "groups",
@@ -432,13 +438,32 @@ $( function() {
 	socket.on("message",    function(data) {
 		// each 'signale' triggers another JS event
 		$( document ).trigger( "ZWave::" + data.signal, data);
-		
-		var msg = Object.keys(data).map((key) => `${key}: ${data[key]}`);
+
+		var uuid = "n/a";
+		var stamp = Date.now();
+		var signal = "info";
+		if ("uuid" in data) {
+			uuid = data.uuid;
+			delete data.uuid;
+		}
+		if ("stamp" in data) {
+			stamp = data.stamp;
+			delete data.stamp;
+		}
+		if ("signal" in data) {
+			signal = data.signal;
+			delete data.signal;
+		}
 
 		if (!gob.debug)
-			IO.log(msg, Date.now(), data["signal"]);
-		else
-			IO.debug(msg);
+			for (key in data)
+				if (data[key] == "n/a")
+					delete data[key];
+
+
+		var msg = Object.keys(data).map((key) => `${key}: ${data[key]} `);
+
+		IO.log(msg, stamp, signal, uuid);
 
 	});
 
