@@ -16,6 +16,45 @@ from openzwave.value import ZWaveValue
 class ZWaveCentralException(ZWaveException):
     pass
 
+class ZWaveCoreNode:
+    """YET UNUSED @TODO"""
+    def __init__(self, zwave_node_obj):
+        self._zwave_node_obj = zwave_node_obj
+
+        self._values = {}
+        self._groups = {}
+
+    @property
+    def values(self):
+        """@FIXME: include caching ??? """
+        self._values = {}
+        for val_id, val_obj in self._zwave_node_obj.values.items():
+            self._values[val_id] = val_obj.to_dict()
+        return self._values
+
+    @property
+    def groups(self):
+        """@FIXME: include caching ??? """
+        #if self._groups is None:
+        self._groups = {}
+        for idx, grp in self._zwave_node_obj.groups.items():
+            self._groups[idx] = grp.to_dict()
+            self._groups[idx]["index"] = idx
+            self._groups[idx]["max_associations"] = grp.max_associations
+            self._groups[idx]["cur_associations"] = len(grp.associations)
+            self._groups[idx]["max_count"] = grp.max_associations
+            self._groups[idx]["cur_count"] = len(grp.associations)
+        return self._groups
+
+    def __getattr__(self, key):
+        return getattr(self._zwave_node_obj, key)
+    def __setattr__(self, key, val):
+        return setattr(self._zwave_node_obj, key, val)
+    def __delattr__(self, key):
+        return delattr(self._zwave_node_obj, key)
+    def __hasattr__(self, key):
+        return hasattr(self._zwave_node_obj, key)
+
 class ZWave:
     def __init__(self, error_handler, sig_handler):
         self.ctrl = []
@@ -35,6 +74,7 @@ class ZWave:
                     sig_handler, signal=sig, sender=dispatcher.Any)
 
     def get_node(self, node_id, silentfail=False):
+        """@TODO: getter => ugly/not necessary => own node(s) cls, wrap original, don't inherit"""
         if not self.net:
             self.err_handler(414)
         out = self.net.nodes.get(node_id)
@@ -89,6 +129,7 @@ class ZWave:
         self.net.start()
 
     def get_groups(self, node_id):
+        """@TODO: getter => ugly/not necessary => own grps(s) cls, wrap original, don't inherit"""
         my_groups = {}
         for idx, grp in self.get_node(node_id).groups.items():
             my_groups[idx] = grp.to_dict()
@@ -97,8 +138,14 @@ class ZWave:
             my_groups[idx]["cur_associations"] = len(grp.associations)
             my_groups[idx]["max_count"] = grp.max_associations
             my_groups[idx]["cur_count"] = len(grp.associations)
-
         return my_groups
+
+    def get_values(self, node_id):
+        """@TODO: getter => ugly/not necessary => own value(s) cls, wrap original, don't inherit"""
+        my_values = {}
+        for val_id, val_obj in self[node_id].values.items():
+            my_values[val_id] = val_obj.to_dict()
+        return my_values
 
 def get_member(src, attr_name, args, env):
     obj = getattr(src, attr_name)

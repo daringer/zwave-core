@@ -70,6 +70,8 @@ def io_connect():
             try:
                 item = sig_queue.get(timeout=5)
                 socketio.send(to_json(item), namespace="/websocket")
+                #socketio.send(json.dumps(item), namespace="/websocket")
+
             except Empty:
                 continue
 
@@ -170,7 +172,8 @@ class SignalManager(object):
 
     def trim(self, more_kw):
         out = {}
-        for key, value in more_kw.items():
+        my_iter = more_kw.items() if isinstance(more_kw, dict) else enumerate(more_kw)
+        for key, value in my_iter:
             if value is None or value == 'None' or value == 'None.':
                 out[key] = self.none_repl
                 continue
@@ -213,7 +216,7 @@ def default_signal_handler(sender, signal, *v, **kw):
     while True:
         try:
             if DEBUG:
-                print ("ENQUEING:", to_send)
+                print ("ENQUEING:", type(to_send), to_send)
             sig_queue.put(to_send, timeout=5)
             #sig_archive[x["uuid"]] = x
             break
@@ -229,6 +232,12 @@ def default_signal_handler(sender, signal, *v, **kw):
 
 
 def action_handler(attrs, sub_act_dct, wrap_dct, action, args, src, zwave_obj):
+    """
+    Generic `action_handler` for python-openzwave `action`s exposed via the REST-API.
+    - if `action` inside "show" group: run `get_member()` on `action`, `args` and `zwave_obj`
+    - otherwise `action` might be "wrapped" leading to call of wrapped function: wrap()
+    - or `action` "converts" action, args + zwave_obj to be used with original action
+    """
     if DEBUG:
         print(f"action_handler with action: {action} and args: {args}")
     # found in regular action list
@@ -448,9 +457,15 @@ def nodelist():
 
 class Node(Resource):
     def get(self, node_id):
-        is_ctrl = zwave[node_id].role == "Central Controller"
+        """
+        @TODO: avoid sending ALL information here, only minimal data like ?????
+               other data shall then be acquired via calls to node/<node_id>/[groups,values,stats,...]
+        """
+        is_ctrl = zwave[node_id].role == "Central Controller" and \
+                "primaryController" in zwave[node_id].capabilities
+
         return ret_ajax({
-            "values": zwave[node_id].values,
+            "values": zwave.get_values(node_id),
             "actions": NODE_ACTIONS,
             "groups": zwave.get_groups(node_id),
             "stats": zwave[node_id].stats,
@@ -537,7 +552,7 @@ class NodeGroup(Resource):
 
 class NodeValue(Resource):
     def get(self, node_id, value_id):
-        return ret_ajax(zwave[node_id].values[value_id])
+        return ret_ajax(zwave.get_values(node_id)[value_id])
         #return ret_ajax(zwave.get_value_by_uid(uid)[1])
 
     def post(self, node_id, value_id):
@@ -547,16 +562,7 @@ class NodeValue(Resource):
             print ("no or bad data provided: {}".format(data))
             abort(404)
 
-        #_node_id, val = zwave.get_value_by_uid(uid)
-
-        #try:
-        #  print (node_id, uid)
-        #  obj = zwave[node_id].values[uid]
-        #except KeyError as e:
-        #  print ("\n".join(["{1}: {0}".format(zwave[node_id].values[k], k) for k in zwave[node_id].values.keys()]))
-        #if node_id is None or value_id is None:
-
-        node_vals = zwave[node_id].values
+        node_vals = zwave.get_values(node_id) #[node_id].values
         if value_id not in node_vals:
             return ret_err(404, msg="ValueID not found: {} node_id: {}".format(value_id, node_id))
 
@@ -566,9 +572,6 @@ class NodeValue(Resource):
             print ("data contents are crap: {}, check_data() failed...".format(data))
             abort(405)
         node_vals[value_id].data = data
-                #from IPython import embed
-        #embed()
-        #val.data = data
 
         return ret_msg(msg="data for value set successfully")
 

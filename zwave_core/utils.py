@@ -13,8 +13,10 @@ def listify(it_or_not):
 
 def to_json(obj, max_depth=10, cur_depth=0):
     """Recurse through `obj` to jsonify non-jsonifyable data-types (not cycle safe!)"""
+    #print (f"START-JSON: {type(obj)} depth: {cur_depth} {obj} ")
     if cur_depth > max_depth:
-      return "{...}"
+        #print (f"TO-JSON too deep!: {obj}")
+        return "{...}"
 
     if isinstance(obj, dict):
         out = {}
@@ -22,10 +24,16 @@ def to_json(obj, max_depth=10, cur_depth=0):
           if key == "value_id":
               out[key] = str(val)
           else:
+              #print (f"descent dict key: {key}")
               out[key] = to_json(val)
         return out
 
     elif isinstance(obj, (ZWaveValue, ZWaveNode, ZWaveNetwork, ZWaveOption, ZWaveController)):
+        print ("#"*50)
+        print ("#"*50)
+        print (f"NON-JSON: {type(obj)} depth: {cur_depth} {obj} ")
+        print ("#"*50)
+        print ("#"*50)
         #if isinstance(obj, (ZWaveValue, ZWaveNode, ZWaveNetwork, ZWaveController)):
         if isinstance(obj, (ZWaveValue, ZWaveNode)):
             dct = obj.to_dict()
@@ -37,9 +45,11 @@ def to_json(obj, max_depth=10, cur_depth=0):
             return obj.__class__.__name__
 
     elif isinstance(obj, (tuple, list, frozenset, set)):
+        #print (f"TO-JSON (tup, li, fros, se): {obj}")
         return [to_json(sub_obj, max_depth=max_depth, cur_depth=cur_depth + 1) for sub_obj in obj]
 
     elif isinstance(obj, (int, str, float, complex, bool, type(None))):
+        #print (f"TO-JSON (PoD): {obj}")
         if isinstance(obj, int) and obj > 2**53-1:
           return str(obj)
         return obj
