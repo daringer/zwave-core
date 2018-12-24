@@ -5,6 +5,8 @@ from enum import IntEnum
 from time import time, sleep
 from uuid import uuid4
 import json
+import sys
+import yaml
 
 import eventlet
 from eventlet.queue import Empty, Full, Queue
@@ -31,12 +33,27 @@ from zwave_cls import ZWave, get_member
 from ajax_builder import Ajax, ret_ajax, ret_jajax, ret_err, \
         ret_jerr, ret_msg, ret_jmsg
 # @TODO: get rid of to_json(), worst possible implementation :(
-from utils import listify, to_json
+from utils import listify, to_json, ItemsToAttrs
 
 from consts import *
 
-DEBUG = True
+from mqtt_client import MyMQTTClient
 
+### load config
+cfg_fn = "zwave_core.yaml"
+if len(sys.argv) >= 3:
+    assert sys.argv[1] == "-c"
+    cfg_fn = sys.argv[2]
+if not os.path.exists(cfg_fn):
+    print (f"Cannot start without config file: {cfg_fn}")
+
+cfg = ItemsToAttrs({})
+with open(cfg_fn, "rb") as fd:
+    cfg = ItemsToAttrs(yaml.load(fd))
+
+
+
+DEBUG = cfg.debug
 
 app = Flask(__name__)
 #app.config['SECRET_KEY'] = "meissna_geheim"
@@ -250,7 +267,8 @@ def action_handler(attrs, sub_act_dct, wrap_dct, action, args, src, zwave_obj):
     if wrap is not None:
         if callable(wrap):
             if DEBUG:
-                print (f"WRAPPING: {action} using args: {args} as callable node_id: {src and src.node_id}")
+                _node_id = "<none>" if (src is None or not hasattr(src, "node_id")) else src.node_id
+                print (f"WRAPPING: {action} using args: {args} as callable node_id: {_node_id}")
             # either a callable() replacing the original call
             return wrap(src, action, args, zwave_obj)
         else:
@@ -268,34 +286,35 @@ def action_handler(attrs, sub_act_dct, wrap_dct, action, args, src, zwave_obj):
 ###
 ### (web)page(s)
 ###
-PATH_TO_WEB = "src-web"
-@app.route("/static/<string:path>")
-@app.route("/static/js/<string:path>")
-def frontend_static(path):
-    js_path = os.path.join(PATH_TO_WEB, "js", path)
-    path = os.path.join(PATH_TO_WEB, path)
-    if not os.path.exists(path):
-        if not os.path.exists(js_path):
-            abort(404)
+if cfg.frontend.active:
+    PATH_TO_WEB = "src-web"
+    @app.route("/static/<string:path>")
+    @app.route("/static/js/<string:path>")
+    def frontend_static(path):
+        js_path = os.path.join(PATH_TO_WEB, "js", path)
+        path = os.path.join(PATH_TO_WEB, path)
+        if not os.path.exists(path):
+            if not os.path.exists(js_path):
+                abort(404)
+            else:
+                path = js_path
+
+        with open(path) as fd:
+            data = fd.read()
+
+        if path.endswith(".js") or path.endswith(".map"):
+            return Response(data, mimetype="text/javascript")
+        elif path.endswith(".css"):
+            return Response(data, mimetype="text/css")
         else:
-            path = js_path
+            return Response(data, mimetype="text/plain")
 
-    with open(path) as fd:
-        data = fd.read()
-
-    if path.endswith(".js") or path.endswith(".map"):
-        return Response(data, mimetype="text/javascript")
-    elif path.endswith(".css"):
-        return Response(data, mimetype="text/css")
-    else:
-        return Response(data, mimetype="text/plain")
-
-@app.route("/frontend")
-def frontend():
-    path = os.path.join(PATH_TO_WEB, "frontend.html")
-    with open(path) as fd:
-        tmpl = Environment(loader=BaseLoader).from_string(fd.read())
-    return tmpl.render()
+    @app.route("/frontend")
+    def frontend():
+        path = os.path.join(PATH_TO_WEB, "frontend.html")
+        with open(path) as fd:
+            tmpl = Environment(loader=BaseLoader).from_string(fd.read())
+        return tmpl.render()
 
 ##
 ## non static resources
@@ -461,14 +480,14 @@ class Node(Resource):
         @TODO: avoid sending ALL information here, only minimal data like ?????
                other data shall then be acquired via calls to node/<node_id>/[groups,values,stats,...]
         """
-        is_ctrl = zwave[node_id].role == "Central Controller" and \
-                "primaryController" in zwave[node_id].capabilities
+        node = zwave.get_node(node_id)
+        is_ctrl = node.role == "Central Controller" and "primaryController" in node.capabilities
 
         return ret_ajax({
-            "values": zwave.get_values(node_id),
+            "values": dict((v.value_id, v.to_dict()) for v in node.values.values()),
             "actions": NODE_ACTIONS,
-            "groups": zwave.get_groups(node_id),
-            "stats": zwave[node_id].stats,
+            "groups": dict((g.index, g.to_dict()) for g in node.groups.values()),
+            "stats": node.stats,
             "is_ctrl": is_ctrl,
             "ctrl_stats": zwave.ctrl[0].stats if is_ctrl else ""
         })
@@ -501,47 +520,48 @@ def node_action(node_id, action):
 
 @rest.get("/node/<int:node_id>/groups")
 def getgroups(node_id):
-    return ret_jajax(zwave.get_groups(node_id))
+    return ret_jajax([g.to_dict() for g in zwave.get_node(node_id).groups.values()])
 
 class NodeGroup(Resource):
     def get(self, node_id, index):
-        grp = zwave.get_groups(node_id).get(index)
+        grp = zwave.get_node(node_id).groups.get(index).to_dict() #groups(node_id).get(index)
         if grp is not None:
             return ret_ajax(grp)
-        return ret_err(404, "Group at index: {} in node_id: {}, not found". \
-                       format(index, node_id))
+        return ret_err(404, f"group at index: {index} in node_id: {node_id}, not found")
 
     def put(self, node_id, index):
-        grp = zwave.get_groups(node_id).get(index)
+        grp = zwave.get_node(node_id).groups.get(index) #groups(node_id).get(index)
         if grp is None:
-           return ret_err(404, "Group at index: {} in node_id: {}, not found". \
-                       format(index, node_id))
+           return ret_err(404, f"group at index: {index} in node_id: {node_id}, not found")
+
         target_node_id = group_parse.parse_args(strict=True).target_node_id
         if target_node_id is None:
-            print ("no or bad data provided: {}".format(target_node_id))
+            print (f"no or bad data provided: {target_node_id}")
             abort(404)
 
-        zwave[node_id].groups[index].add_association(target_node_id)
-        return ret_msg(msg="added node_id: {} to group: {}". \
-                       format(target_node_id, index))
+        zwave.get_node(node_id).groups.get(index).add_association(target_node_id)
+        #zwave[node_id].groups[index].add_association(target_node_id)
+        return ret_msg(msg=f"added node_id: {target_node_id} to group: {index}")
 
     def delete(self, node_id, index):
-        grp = zwave[node_id].groups.get(index)
+        #grp = zwave[node_id].groups.get(index)
+        grp = zwave.get_node(node_id).groups.get(index)
         if grp is None:
-           return ret_err(404, "Group at index: {} in node_id: {}, not found". \
-                       format(index, node_id))
+           return ret_err(404, f"group at index: {index} in node_id: {node_id}, not found")
+
         target_node_id = group_parse.parse_args(strict=True).target_node_id
+
         if target_node_id is None:
-            print ("no or bad data provided: {}".format(target_node_id))
+            print (f"no or bad data provided: {target_node_id}")
             abort(404)
 
         if target_node_id not in grp.associations:
-            return ret_err(404, "target_node_id: {} not found in grp: {}". \
-                           format(target_node_id, index))
+            return ret_err(404, f"target_node_id: {target_node_id} not found in grp: {index}")
 
-        zwave[node_id].groups[index].remove_association(target_node_id)
-        return ret_msg(msg="removed node_id: {} from group: {}". \
-                        format(target_node_id, index))
+        #zwave[node_id].groups[index].remove_association(target_node_id)
+        zwave.get_node(node_id).groups.get(index).remove_association(target_node_id)
+
+        return ret_msg(msg=f"removed node_id: {target_node_id} from group: {index}")
 
 #class NodeConfig(Resource):
 #    def get(self, node_id):
@@ -552,7 +572,7 @@ class NodeGroup(Resource):
 
 class NodeValue(Resource):
     def get(self, node_id, value_id):
-        return ret_ajax(zwave.get_values(node_id)[value_id])
+        return ret_ajax(zwave.get_node(node_id).values.get(value_id).to_dict())
         #return ret_ajax(zwave.get_value_by_uid(uid)[1])
 
     def post(self, node_id, value_id):
@@ -562,14 +582,13 @@ class NodeValue(Resource):
             print ("no or bad data provided: {}".format(data))
             abort(404)
 
-        node_vals = zwave.get_values(node_id) #[node_id].values
+        node_vals = zwave.get_node(node_id).values #[node_id].values
         if value_id not in node_vals:
-            return ret_err(404, msg="ValueID not found: {} node_id: {}".format(value_id, node_id))
+            return ret_err(404, msg=f"ValueID not found: {value_id} node_id: {node_id}")
 
         data = node_vals[value_id].check_data(data)
-        #print ("SEETTTING", val, val.data, "TOOOO:", data)
         if data is None:
-            print ("data contents are crap: {}, check_data() failed...".format(data))
+            print (f"data contents are crap: {data}, check_data() failed...")
             abort(405)
         node_vals[value_id].data = data
 
@@ -583,13 +602,20 @@ api.add_resource(Node,          "/node/<int:node_id>")
 
 zwave = ZWave(abort, default_signal_handler)
 
+
+base_topic = cfg.mqtt.base_topic
+mqtt = MyMQTTClient(cfg.mqtt.manager.host, cfg.mqtt.manager.port, base_topic,
+    base_topic + "/" + cfg.mqtt.raw_topic, base_topic + "/" + cfg.mqtt.export_topic)
+
+
 if __name__ == '__main__':
+
     ####### regular
     #app.run(debug=True)
 
     ####### eventlet
-    app.debug = True
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    app.debug = cfg.debug
+    socketio.run(app, host=cfg.api.bind.host, port=cfg.api.bind.port, debug=cfg.debug)
 
     ####### aiohttp
     #socketio.attach(app)
@@ -598,4 +624,3 @@ if __name__ == '__main__':
     ####### eventlet Middleware
     #app = socketio.Middleware(sio)
     #eventlet.wsgi.server(eventlet.listen(('', 8000)), app)
-

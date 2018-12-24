@@ -34,7 +34,7 @@ class Node {
 
 		this.values[value_id].data = data;
 		this.last_updated = Date.now();
-		IO.log(`set value: ${data}`);
+		//IO.dbg(`set value: ${data}`);
 		return data;
 	}
 

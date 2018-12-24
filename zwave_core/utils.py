@@ -5,6 +5,22 @@ from openzwave.network import ZWaveNetwork
 from openzwave.controller import ZWaveController
 from openzwave.option import ZWaveOption
 
+
+
+class ItemsToAttrs:
+    def __init__(self, data_dct):
+        self._data_dct = data_dct
+
+    def __getattr__(self, key):
+        out = self._data_dct[key]
+        if isinstance(out, dict):
+            return self.__class__(out)
+        return out
+
+
+
+
+
 def listify(it_or_not):
     """Less aggressive `to_json()` variant, which mainly handles sets"""
     if isinstance(it_or_not, set):

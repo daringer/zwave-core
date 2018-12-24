@@ -12,7 +12,7 @@ plugins:
   - auth_anonymous
 topic-check:
   enabled: true
-  plugins': 
+  plugins: 
     - topic_taboo
 
 

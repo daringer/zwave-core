@@ -1,3 +1,23 @@
+debug: true
+
+api:
+  bind:
+    host: 0.0.0.0
+    port: 5000
+
+frontend:
+  active: true
+
+mqtt:
+  active: true
+  base_topic: zwave
+  export_topic: all
+  raw_topic: raw
+  manager:
+    host: 127.0.0.1
+    port: 1883
+
+
 
 
 
