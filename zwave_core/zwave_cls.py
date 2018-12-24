@@ -68,33 +68,24 @@ class ZWaveCoreValue(ZWaveCoreBaseClass):
 class ZWaveCoreNode(ZWaveCoreBaseClass):
     def __init__(self, ozw_obj):
         super().__init__(ozw_obj, NODE_MEMBERS)
-        self._values = {}
-        self._groups = {}
+        self._values = None
+        self._groups = None
 
     @property
     def values(self):
-        """@FIXME: include caching ??? """
         if not self._values:
             self._values = {}
-            #out = {}
-            #for val_id, val_obj in self._ozw_obj.values.items():
             for val_obj in self._ozw_obj.values.values():
                 self._values[val_obj.value_id] = ZWaveCoreValue(val_obj)
-                #out[val_id] = ZWaveCoreValue(val_obj)
         return self._values
-        #return out
 
     @property
     def groups(self):
-        """@FIXME: include caching ??? """
-        if not self._groups: #is None:
+        if not self._groups:
             self._groups = {}
-            #out = {}
             for idx, grp in self._ozw_obj.groups.items():
-                #out[idx] = ZWaveCoreGroup(grp)
                 self._groups[idx] = ZWaveCoreGroup(grp)
         return self._groups
-        #return out
 
 class ZWave:
     def __init__(self, error_handler, sig_handler):
@@ -115,7 +106,6 @@ class ZWave:
                     sig_handler, signal=sig, sender=dispatcher.Any)
 
     def get_node(self, node_id, silentfail=False):
-        """@TODO: getter => ugly/not necessary => own node(s) cls, wrap original, don't inherit"""
         if not self.net:
             self.err_handler(414)
         ozw_node = self.net.nodes.get(node_id)
@@ -169,25 +159,6 @@ class ZWave:
 
         self.home_id = self.net.home_id
         self.net.start()
-
-#    def get_groups(self, node_id):
-#        """@TODO: getter => ugly/not necessary => own grps(s) cls, wrap original, don't inherit"""
-#        my_groups = {}
-#        for idx, grp in self.get_node(node_id).groups.items():
-#            my_groups[idx] = grp.to_dict()
-#            my_groups[idx]["index"] = idx
-#            my_groups[idx]["max_associations"] = grp.max_associations
-#            my_groups[idx]["cur_associations"] = len(grp.associations)
-#            my_groups[idx]["max_count"] = grp.max_associations
-#            my_groups[idx]["cur_count"] = len(grp.associations)
-#        return my_groups
-#
-#    def get_values(self, node_id):
-#        """@TODO: getter => ugly/not necessary => own value(s) cls, wrap original, don't inherit"""
-#        my_values = {}
-#        for val_id, val_obj in self[node_id].values.items():
-#            my_values[val_id] = val_obj.to_dict()
-#        return my_values
 
 def get_member(src, attr_name, args, env):
     obj = getattr(src, attr_name)

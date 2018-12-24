@@ -24,11 +24,15 @@ class MyMQTTClient:
         self.manager_port = manager_port
         self.manager_host = manager_host
         self.client = MQTTClient(config=self.client_mqtt_config)
-        self.client.connect(f"mqtt://{manager_host}:{manager_port}/")
+        self.client.connect(f"mqtt://{manager_host}:{manager_port}/").close()
 
     def publish(self, topic, contents):
-        self.client.publish(topic, contents)
-
+        if isinstance(contents, dict):
+            return list(map(lambda x: x.close(), [self.publish(f"{topic}/{key}", value) for key, value in contents.items()]))
+        elif isinstance(contents, (tuple, list, set, frozenset)):
+            return list(map(lambda x: x.close(), [self.publish(f"{topic}/{idx}", value) for idx, value in contents]))
+        else:
+            return self.client.publish(topic, contents)
 
     def subscribe(self, topics):
         """
@@ -43,7 +47,7 @@ class MyMQTTClient:
         """
         out = None, None
         try:
-            msg = self.client.deliver_message(timeout=timeout)
+            msg = self.client.deliver_message(timeout=timeout).close()
             p = msg.publish_packet
             topic, data = p.variable_header.topic_name, p.payload.data
             out = topic, data
@@ -53,6 +57,6 @@ class MyMQTTClient:
         return out
 
     def destroy(self):
-        self.client.disconnect()
+        self.client.disconnect().close()
 
 

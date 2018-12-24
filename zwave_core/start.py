@@ -608,6 +608,15 @@ mqtt = MyMQTTClient(cfg.mqtt.manager.host, cfg.mqtt.manager.port, base_topic,
     base_topic + "/" + cfg.mqtt.raw_topic, base_topic + "/" + cfg.mqtt.export_topic)
 
 
+@rest.get("/mqtt")
+def run_mqtt():
+    for node_id in zwave.net.nodes:
+        node = zwave.get_node(node_id)
+        topic = f"{cfg.mqtt.base_topic}/{cfg.mqtt.raw_topic}/node/{node.node_id}"
+        print(mqtt.publish(topic, node.to_dict()))
+
+    return ret_jmsg("donr")
+
 if __name__ == '__main__':
 
     ####### regular

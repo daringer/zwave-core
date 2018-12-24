@@ -348,6 +348,7 @@ $( function() {
 				// ctrl.setup(gob.net);
 			});
 	});
+
 	// network goes down, triggered once
 	$( document ).on("ZWave::NetworkStopped", function(data) {
 		gob.device_path = null;
@@ -357,9 +358,26 @@ $( function() {
 		gob.network.teardown();
 	});
 
+	$( document ).on("ZWave::Notification", function(ev, data) {
+		// how to translate all the cryptic codes to read-able error/info messages???
+		// -> only openzwave.org website's docs ?
+		// -> official zwave docs ?
+	});
+
+	$( document ).on("ZWave::ControllerCommand", function(ev, data) {
+			// also don't know what to do here!?
+		  // actually the "raw" signals shall be hidden and
+      // just high-lvl info should be displayed (on-demand ? configurable? two event jsgrids?)
+	});
+
+	$( document ).on("ZWave::NodeNaming", function(ev, data) {
+			// nothing to do, just the confirmation for success on set_field()
+		  // for name/location
+	});
+
 	// value is added to node, important for a perfect startup
 	$( document ).on("ZWave::ValueAdded", function(ev, data) {
-		console.log("ValueAdded NOT YET HANDLED!!!");
+			$( document ).trigger("ZWave::ValueChanged", data);
 	});
 
 	// node value changed sig-handler...
