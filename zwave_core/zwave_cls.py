@@ -13,7 +13,9 @@ from openzwave.value import ZWaveValue
 # from openzwave.controller import ZWaveController
 # from openzwave.network import ZWaveNetwork
 
-from consts import NODE_MEMBERS, VALUE_MEMBERS, GROUP_MEMBERS
+from consts import GROUP_MEMBERS, GROUP_ATTRS, GROUP_EXTRA_ATTRS, \
+        VALUE_MEMBERS, VALUE_ATTRS, VALUE_EXTRA_ATTRS, \
+        NODE_MEMBERS, NODE_ATTRS, NODE_EXTRA_ATTRS
 
 
 class ZWaveCentralException(ZWaveException):
@@ -21,10 +23,20 @@ class ZWaveCentralException(ZWaveException):
 
 
 class ZWaveCoreBaseClass:
-    def __init__(self, ozw_obj, wrapped_members=None):
+    def __init__(self, ozw_obj, wrapped_members=None, show_attrs=None, extra_attrs=None):
+        """
+        - `ozw_obj` holds the original python-openzwave instance of this zwave-item
+        - `wrapped_members` is a list of members within `ozw_obj` to be passed through i.e., wrapped
+        - `extra_attrs` constains a list of attrs extending the object, but these are obviously to
+          be found within the wrapping object instance
+        - `show_attrs` contains a list of attrs to be shown, if the object is being asked to provide
+          its ::to_dict() output
+        """
         # init openzwave object as member
         object.__setattr__(self, "_ozw_obj", ozw_obj)
-        object.__setattr__(self, "_wrapped_members", wrapped_members or [])
+        object.__setattr__(self, "_wrapped_members", (set(wrapped_members) - set(extra_attrs)) or [])
+        object.__setattr__(self, "_extra_attrs", extra_attrs or [])
+        object.__setattr__(self, "_show_attrs", show_attrs or [])
 
     def __getattr__(self, key):
         if key in self._wrapped_members:
@@ -35,39 +47,39 @@ class ZWaveCoreBaseClass:
         obj = self._ozw_obj if key in self._wrapped_members else self
         return object.__setattr__(obj, key, val)
 
-    def __delattr__(self, key):
-        obj = self._ozw_obj if key in self._wrapped_members else self
-        return object.__delattr__(obj, key)
-
     def __hasattr__(self, key):
         return key in self._wrapped_members + self.__dict__.keys()
 
-    def to_dict(self):
-        return self._ozw_obj.to_dict()
+    def to_dict(self, excludes=None):
+        out = {}
+        excludes = excludes or []
+        for attr in self._show_attrs:
+            if attr not in excludes and hasattr(self, attr):
+                out[attr] = getattr(self, attr)
+        return out
 
 class ZWaveCoreGroup(ZWaveCoreBaseClass):
     def __init__(self, ozw_obj):
-        super().__init__(ozw_obj, GROUP_MEMBERS)
+        super().__init__(ozw_obj, GROUP_MEMBERS, GROUP_ATTRS, GROUP_EXTRA_ATTRS)
         self.cur_associations = len(self.associations)
         self.max_count = self.max_associations
         self.cur_count = len(self.associations)
 
     def to_dict(self):
-        out = self._ozw_obj.to_dict()
-        out["cur_associations"] = len(self._ozw_obj.associations)
-        out["max_count"] = self._ozw_obj.max_associations
-        out["cur_count"] = len(self._ozw_obj.associations)
+        out = super().to_dict()
+        for key, val in out.items():
+            if isinstance(val, set):
+                out[key] = list(val)
         return out
 
 
 class ZWaveCoreValue(ZWaveCoreBaseClass):
     def __init__(self, ozw_obj):
-        super().__init__(ozw_obj, VALUE_MEMBERS)
-
+        super().__init__(ozw_obj, VALUE_MEMBERS, VALUE_ATTRS, VALUE_EXTRA_ATTRS)
 
 class ZWaveCoreNode(ZWaveCoreBaseClass):
     def __init__(self, ozw_obj):
-        super().__init__(ozw_obj, NODE_MEMBERS)
+        super().__init__(ozw_obj, NODE_MEMBERS, NODE_ATTRS, NODE_EXTRA_ATTRS)
         self._values = None
         self._groups = None
 
@@ -100,6 +112,8 @@ class ZWave:
 
         self.err_handler = error_handler
 
+        #self.node_cache = {}
+
         for sig, handler in net_signals:
             if handler is None:
                 dispatcher.connect(
@@ -108,8 +122,18 @@ class ZWave:
     def get_node(self, node_id, silentfail=False):
         if not self.net:
             self.err_handler(414)
-        ozw_node = self.net.nodes.get(node_id)
-        out = ZWaveCoreNode(ozw_node)
+
+        #out = None
+        #if not node_id in self.node_cache:
+        #    out = ZWaveCoreNode(self.net.nodes.get(node_id))
+        #self.node_cache[node_id] = out
+
+        #if out is None:
+        #    raise Exception("shit")
+
+        #print (f"soifjoidsojidf: {node_id}")
+        inner = self.net.nodes.get(node_id)
+        out = ZWaveCoreNode(inner)
         return out
 
     def get_main_ctrl(self):

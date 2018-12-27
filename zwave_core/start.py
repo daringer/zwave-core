@@ -7,6 +7,7 @@ from uuid import uuid4
 import json
 import sys
 import yaml
+from hashlib import md5
 
 import eventlet
 from eventlet.queue import Empty, Full, Queue
@@ -53,10 +54,10 @@ with open(cfg_fn, "rb") as fd:
 
 
 
-DEBUG = cfg.debug
+signals_debug = cfg.debug.signals
 
 app = Flask(__name__)
-#app.config['SECRET_KEY'] = "meissna_geheim"
+app.config['SECRET_KEY'] = cfg.secret
 
 api = Api(app)
 
@@ -161,7 +162,7 @@ class SignalManager(object):
         pass
 
     def parse_signal(self, when, sender, sig, uuid, more_args, more_kw):
-        if DEBUG:
+        if signals_debug:
             print ("\n\n")
             print ("---- SignalManager ----")
             print ("when:", when, "sender:", sender, "sig:", sig, "uuid:", uuid)
@@ -176,12 +177,12 @@ class SignalManager(object):
         if str(sender) == "_Anonymous":
             del out["sender"]
 
-        if sig == "ValueChanged":
-            out["frontend_action"] = FrontendAction.update_value
-        elif sig == "ValueAdded":
-            out["frontend_action"] = FrontendAction.add_value | FrontendAction.update_value
+        #if sig == "ValueChanged":
+        #    out["frontend_action"] = FrontendAction.update_value
+        #elif sig == "ValueAdded":
+        #    out["frontend_action"] = FrontendAction.add_value | FrontendAction.update_value
 
-        if DEBUG:
+        if signals_debug:
             print("PARSED:", out)
 
         return out
@@ -225,20 +226,20 @@ sig_manager = SignalManager()
 def default_signal_handler(sender, signal, *v, **kw):
     """Signal header for the 'louie' Z-Wave emitted signals"""
     global sig_queue, sig_manager #, sig_archive
-    if DEBUG:
+    if signals_debug:
         print ("DEFAULT HANDLER:", signal)
 
     to_send = sig_manager.parse_signal(time(), sender, signal, uuid4().int % ((2**32)-1), v, kw)
 
     while True:
         try:
-            if DEBUG:
+            if signals_debug:
                 print ("ENQUEING:", type(to_send), to_send)
             sig_queue.put(to_send, timeout=5)
             #sig_archive[x["uuid"]] = x
             break
         except Full:
-            if DEBUG:
+            if signals_debug:
                 print ("ENQUE failed, retrying...")
             # queue full, wait a little
             sleep(1.0)
@@ -255,25 +256,25 @@ def action_handler(attrs, sub_act_dct, wrap_dct, action, args, src, zwave_obj):
     - otherwise `action` might be "wrapped" leading to call of wrapped function: wrap()
     - or `action` "converts" action, args + zwave_obj to be used with original action
     """
-    if DEBUG:
+    if signals_debug:
         print(f"action_handler with action: {action} and args: {args}")
     # found in regular action list
     if action in sub_act_dct["show"]:
-        if DEBUG:
+        if signals_debug:
             print (f"EXECUTING: {action} using args: {args}")
         return get_member(src, action, args, zwave_obj)
 
     wrap = wrap_dct.get(action)
     if wrap is not None:
         if callable(wrap):
-            if DEBUG:
+            if signals_debug:
                 _node_id = "<none>" if (src is None or not hasattr(src, "node_id")) else src.node_id
                 print (f"WRAPPING: {action} using args: {args} as callable node_id: {_node_id}")
             # either a callable() replacing the original call
             return wrap(src, action, args, zwave_obj)
         else:
             # or simply a (action, my_args) => (new_action, my_new_args) converter
-            if DEBUG:
+            if signals_debug:
                 print (f"WRAPPING: {action} using args: {args} as converter")
             new_action, new_args = wrap(src, action, args, zwave_obj)
             return get_member(src, new_action, new_args, zwave_obj)
@@ -417,7 +418,7 @@ def netaction(action):
     if (zwave.net is None and action != "start") and not action in NET_ACTIONS:
         return ret_jerr(404, "Network and/or Controller inactive")
 
-    ret = action_handler(NET_ATTRS, NET_SUB_ACTIONS, NET_WRAP_ACTIONS, action, request.args,
+    ret = action_handler(NET_ATTRS, NET_SUB_ACTIONS, NET_WRAPPED, action, request.args,
                          zwave.net, zwave)
 
     if zwave.net is None:
@@ -443,7 +444,7 @@ def ctrlaction(action, ctrl_idx=0):
     if action not in (CTRL_ACTIONS + CTRL_ATTRS):
         return ret_jerr(404, "Requested action: {} not available".format(action))
 
-    ret = action_handler(CTRL_ATTRS, CTRL_SUB_ACTIONS, CTRL_WRAP_ACTIONS, action, request.args,
+    ret = action_handler(CTRL_ATTRS, CTRL_SUB_ACTIONS, CTRL_WRAPPED, action, request.args,
                          zwave.get_main_ctrl(), zwave)
 
     if isinstance(ret, set):
@@ -511,7 +512,7 @@ def node_action(node_id, action):
     if action not in (NODE_ACTIONS + NODE_ATTRS):
         return ret_jerr(404, "Requested action: {} not available".format(action))
 
-    ret = action_handler(NODE_ATTRS, NODE_SUB_ACTIONS, NODE_WRAP_ACTIONS, action, request.args,
+    ret = action_handler(NODE_ATTRS, NODE_SUB_ACTIONS, NODE_WRAPPED, action, request.args,
                          zwave.get_node(node_id), zwave)
 
     return ret_jmsg(msg="Action: {} sent for node-id: {} returned: {}". \
@@ -520,19 +521,20 @@ def node_action(node_id, action):
 
 @rest.get("/node/<int:node_id>/groups")
 def getgroups(node_id):
-    return ret_jajax([g.to_dict() for g in zwave.get_node(node_id).groups.values()])
+    x = [g.to_dict() for g in zwave.get_node(node_id).groups.values()]
+    return ret_jajax(x)
 
 class NodeGroup(Resource):
     def get(self, node_id, index):
-        grp = zwave.get_node(node_id).groups.get(index).to_dict() #groups(node_id).get(index)
+        grp = zwave.get_node(node_id).groups.get(index).to_dict()
         if grp is not None:
             return ret_ajax(grp)
         return ret_err(404, f"group at index: {index} in node_id: {node_id}, not found")
 
     def put(self, node_id, index):
-        grp = zwave.get_node(node_id).groups.get(index) #groups(node_id).get(index)
+        grp = zwave.get_node(node_id).groups.get(index)
         if grp is None:
-           return ret_err(404, f"group at index: {index} in node_id: {node_id}, not found")
+            return ret_err(404, f"group at index: {index} in node_id: {node_id}, not found")
 
         target_node_id = group_parse.parse_args(strict=True).target_node_id
         if target_node_id is None:
@@ -573,7 +575,6 @@ class NodeGroup(Resource):
 class NodeValue(Resource):
     def get(self, node_id, value_id):
         return ret_ajax(zwave.get_node(node_id).values.get(value_id).to_dict())
-        #return ret_ajax(zwave.get_value_by_uid(uid)[1])
 
     def post(self, node_id, value_id):
         print ("NODE VALUE SET:", node_id, " VALID: ", value_id)
@@ -603,19 +604,71 @@ api.add_resource(Node,          "/node/<int:node_id>")
 zwave = ZWave(abort, default_signal_handler)
 
 
-base_topic = cfg.mqtt.base_topic
-mqtt = MyMQTTClient(cfg.mqtt.manager.host, cfg.mqtt.manager.port, base_topic,
-    base_topic + "/" + cfg.mqtt.raw_topic, base_topic + "/" + cfg.mqtt.export_topic)
-
+mqtt = MyMQTTClient(cfg.mqtt.manager.host, cfg.mqtt.manager.port)
+mqtt.start()
 
 @rest.get("/mqtt")
 def run_mqtt():
-    for node_id in zwave.net.nodes:
-        node = zwave.get_node(node_id)
-        topic = f"{cfg.mqtt.base_topic}/{cfg.mqtt.raw_topic}/node/{node.node_id}"
-        print(mqtt.publish(topic, node.to_dict()))
 
-    return ret_jmsg("donr")
+    if not cfg.mqtt.active:
+        return ret_jerr("MQTT not active")
+
+    if cfg.mqtt.topics.raw:
+        for node_id in zwave.net.nodes:
+            node = zwave.get_node(node_id)
+            topic = f"{cfg.mqtt.topics.raw}/node/{node.node_id}"
+            mqtt.publish(topic, node.to_dict())
+
+
+    if cfg.mqtt.topics.ha:
+        for node_id in zwave.net.nodes:
+            node = zwave.get_node(node_id)
+
+            dev_dct = {
+              "identifiers": [10000 + int(node_id)],
+              "manufacturer": node.manufacturer_name,
+              "model": node.product_name,
+              "name": node.name or ("node_id " + str(node_id))
+            }
+
+            for value_id, value in node.values.items():
+                comp = None
+                cmd_cls = value.command_class
+                if cmd_cls == 37:
+                    comp = "switch"
+                elif cmd_cls in [49, 50]:
+                    comp = "sensor"
+                else:
+                    print (f"unhandled COMMAND CLS: {cmd_cls}")
+                    continue
+
+                _t = f"{cfg.mqtt.topics.ha}/{comp}/{node.node_id}/{value_id}/"
+
+                # HA auto-discover stuff
+                cfg_topic = _t + "config"
+                myname = node.name or ("node_" + str(node.node_id))
+                payload = {
+                  "unique_id": md5(bytes(str(node.node_id) + "___" + str(value_id), "ascii")).hexdigest(),
+                  "name": value.label,
+                  "device": dev_dct
+                }
+
+                state_topic = _t + "state"
+                command_topic = _t + "set"
+                if comp == "switch":
+                    payload["command_topic"] = command_topic
+                elif comp in ["sensor", "switch"]:
+                    payload["state_topic"] = state_topic
+                mqtt.publish(cfg_topic, json.dumps(payload))
+
+                if comp == "switch":
+                    mqtt.subscribe(command_topic)
+
+                # state publish (
+                state_topic = _t + "state"
+                mqtt.publish(state_topic, value.data)
+
+    return ret_jmsg("MQTT topics populated")
 
 if __name__ == '__main__':
 
@@ -623,8 +676,8 @@ if __name__ == '__main__':
     #app.run(debug=True)
 
     ####### eventlet
-    app.debug = cfg.debug
-    socketio.run(app, host=cfg.api.bind.host, port=cfg.api.bind.port, debug=cfg.debug)
+    app.debug = cfg.debug.flask
+    socketio.run(app, host=cfg.api.bind.host, port=cfg.api.bind.port, debug=cfg.debug.socketio)
 
     ####### aiohttp
     #socketio.attach(app)

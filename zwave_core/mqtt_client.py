@@ -1,62 +1,56 @@
 
-from hbmqtt.client import MQTTClient, ClientException
-from hbmqtt.mqtt.constants import QOS_1, QOS_2
-
+import paho.mqtt.client as mqtt
 
 class MyMQTTClient:
-    client_mqtt_config = {
-        "keep_alive": 10,
-        "ping_delay": 1,
-        "default_qos": 0,
-        "default_retain": False,
-        "auto_reconnect": True,
-        "reconnect_max_interval": 5,
-        "reconnect_retries": 10,
-        #'topics': {
-        #    '/test': { 'qos': 1 },
-        #    '/some_topic': { 'qos': 2, 'retain': True }
-        #}
-    }
-
-    def __init__(self, manager_host, manager_port, base_topic="zwave",
-                 raw_topic="raw", export_topic="all"):
+    def __init__(self, manager_host, manager_port):
 
         self.manager_port = manager_port
         self.manager_host = manager_host
-        self.client = MQTTClient(config=self.client_mqtt_config)
-        self.client.connect(f"mqtt://{manager_host}:{manager_port}/").close()
+        self.client = None
 
-    def publish(self, topic, contents):
+    def start(self, host=None, port=None):
+        host = host or self.manager_host
+        port = port or self.manager_port
+
+        self.client = c = mqtt.Client()
+        c.on_connect = self.on_connect
+        c.on_message = self.on_message
+        c.connect(host, port, 60)
+        c.loop_start()
+
+    def stop(self):
+        self.client.loop_stop()
+        self.client.disconnect()
+
+    def on_connect(self, client, userdata, flags, rc):
+        print (f"Connected to MQTT server result-code: {rc}")
+        #client.subscribe("$SYS/#")
+        #client.subscribe("zwave/#/set")
+
+    def on_message(self, client, userdata, msg):
+        print (f"[mqtt] topic: {msg.topic} || data: {str(msg.payload)}")
+
+    def publish(self, topic, contents, retain=True, qos=0):
+        """
+        Publish `contents` to `topic`, descent/recurse, if sub-structure(s) found.
+        Use key/index as topic postfix accordingly during descent...
+        QoS: 0 => max. once ... 1 => min. once ... 2 => exactlly once
+        """
         if isinstance(contents, dict):
-            return list(map(lambda x: x.close(), [self.publish(f"{topic}/{key}", value) for key, value in contents.items()]))
+            return [self.publish(f"{topic}/{key}", value, retain) for key, value in contents.items()]
         elif isinstance(contents, (tuple, list, set, frozenset)):
-            return list(map(lambda x: x.close(), [self.publish(f"{topic}/{idx}", value) for idx, value in contents]))
-        else:
-            return self.client.publish(topic, contents)
+            return [self.publish(f"{topic}/{idx}", value, retain) for idx, value in enumerate(contents)]
+
+        print (f"publishing: {topic}")
+        return self.client.publish(topic, contents, qos=qos, retain=retain)
 
     def subscribe(self, topics):
-        """
-        Subscribe to `topics`, which has fmt:
-            [["topic/123", QOS_1],["bla/foo", QOS_1],[...]]
-        """
-        self.client.subscribe(topics)
+        """Subscribe to `topics`, which has fmt: ["topic/123","bla/foo", [...]]"""
+        if not isinstance(topics, (tuple, set, list, frozenset)):
+            topics = [topics]
 
-    def recv_topic(self, timeout=0):
-        """
-        Receives updates from subscribed topics. timeout=0 blocking forever, >0 raises Exception
-        """
-        out = None, None
-        try:
-            msg = self.client.deliver_message(timeout=timeout).close()
-            p = msg.publish_packet
-            topic, data = p.variable_header.topic_name, p.payload.data
-            out = topic, data
-        except ClientException as e:
-            print (f"timeout or error: {e}")
-
-        return out
-
-    def destroy(self):
-        self.client.disconnect().close()
-
+        for topic in topics:
+            print (f"subscribing: {topic}")
+            self.client.subscribe(topic)
+            print (f"subscribed: {topic}")
 

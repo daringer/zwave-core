@@ -1,4 +1,12 @@
-debug: true
+debug:
+  all: true
+  signals: false
+  mqtt: true 
+  flask: true
+  socketio: true
+
+
+secret: myfancytrustworthysecretpassphrase
 
 api:
   bind:
@@ -10,11 +18,13 @@ frontend:
 
 mqtt:
   active: true
-  base_topic: zwave
-  export_topic: all
-  raw_topic: raw
+  topics:
+      #base: zwave
+      #export: all
+      raw: zwave/raw 
+      ha: homeassistant
   manager:
-    host: 127.0.0.1
+    host: netserver2
     port: 1883
 
 

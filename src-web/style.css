@@ -94,11 +94,17 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 }
 
 
-.val_data_label, .val_data_content, .val_data, .val_data_label_extra,.group_cur_max
+.val_data_label, .val_data_content, .val_data, .val_data_label_extra,.group_cur_max,
 .val_data_minmax, .val_data_extra_text, .group_data_label, .group_data_assoc, .group_data_assoc_add,
 .action_node_link, .prop_data, .prop_data_content, .prop_data_label, .group_data_assoc_icon {
 	padding: 2px;
 	font: 0.75em Helvetica;
+}
+
+.val_data_minmax {
+	float: right;
+	font-size: 0.5em;
+	color: #454545;
 }
 
 .group_data_assoc, .group_data_assic_icon {

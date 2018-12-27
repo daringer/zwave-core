@@ -7,7 +7,10 @@
 The current status:
 * Z-Wave backend / REST API: **beta**
 * Browser Frontend: **alpha** 
-* exposing your Z-Wave network as MQTT client **in development, not yet usable**
+* exposing your Z-Wave network as MQTT client **alpha, not for daily use, yet**
+
+	* Activating `mqtt` (within HA) and its discovery, allows full GUI based configuration
+	* Within zwave-core just run start.py once the network is ready, visit: http://<my_zwave_core_ip>:8123/mqtt
 
 ## Quickstart
 
@@ -98,10 +101,20 @@ the ISM band.
 | /toc                                     |  GET                      |
 
 ### Browser Frontend
+[127.0.0.1:5000/frontend](http://127.0.0.1:5000/frontend) ...
 
 ### MQTT
 
-Not started yet, but soon it will be ready.(tm)
+There are several ways to access the zwave nodes and entities.
+
+* `zwave/raw/<node_id>/#` will provide you an extensive list
+  about all lan-devices, including c onfigs, read-only, ...
+* `homeassistant/<component type (e.g., sensor)>/<node_id>/state#'` 
+  will be populated  automaticly
+* there will later also be the option to change how a specific
+  device/entity is exposed to the outer world (providing the means
+	to realize fixes/abstraction, alredy within zwave-core to keep
+	home-assistant free from unneeded clutter.
 
 ## Status
 

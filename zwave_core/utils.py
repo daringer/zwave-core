@@ -18,9 +18,6 @@ class ItemsToAttrs:
         return out
 
 
-
-
-
 def listify(it_or_not):
     """Less aggressive `to_json()` variant, which mainly handles sets"""
     if isinstance(it_or_not, set):
