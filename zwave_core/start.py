@@ -604,8 +604,12 @@ api.add_resource(Node,          "/node/<int:node_id>")
 zwave = ZWave(abort, default_signal_handler)
 
 
-mqtt = MyMQTTClient(cfg.mqtt.manager.host, cfg.mqtt.manager.port)
-mqtt.start()
+try:
+    mqtt = MyMQTTClient(cfg.mqtt.manager.host, cfg.mqtt.manager.port)
+    mqtt.start()
+except Exception as e:
+    print(e)
+
 
 @rest.get("/mqtt")
 def run_mqtt():
