@@ -2,6 +2,12 @@
 - Bugs:
 --------------------------------------
 
+  - try the next idea to remove failed battery node which never wakes up: (startup option)
+		PyOptionList = {'AppendLogFile': {'doc': 'Append new session logs to existing log file (false = overwrite).', 'type': 'Bool'}, 
+		'Associate': {'doc': 'Enable automatic association of the controller with group one of every device.', 'type': 'Bool'}, 
+		'AssumeAwake': {'doc': 'Assume Devices that Support the Wakeup CC are awake when we first query them ...', 'type': 'Bool'}, 
+		'ConfigPath': {'doc': 'Path to the OpenZWave config folder.', 'type': 'String'}, 'ConsoleOutput': {'d
+
 	- allow filtering in log window, or other configurations (list len, etc...)
 
   - association tables are buggy with multiple tables/assocs (see RGBW)
