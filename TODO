@@ -2,6 +2,8 @@
 - Bugs:
 --------------------------------------
 
+	- allow filtering in log window, or other configurations (list len, etc...)
+
   - association tables are buggy with multiple tables/assocs (see RGBW)
 
   - adding new node, does not add the node to the jsgrid, see log:
