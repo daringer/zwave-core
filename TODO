@@ -2,8 +2,11 @@
 - Bugs:
 --------------------------------------
 
+	- sometimes some config values and user values are doubled,
+		- also here put things together by command classes
+
 	- jsgrid is not always updating certain data:
-		- e.g., query stage
+		- e.g., query stage, well seems none of them is updated ?
 		- ....
 
   - try the next idea to remove failed battery node which never wakes up: (startup option)
@@ -73,6 +76,9 @@
 
 - OZWCP replacement (top top top prio)
 --------------------------------------
+  - Realize command class dependent behavior on frontend side, e.g., wake up time (132) 
+		and any others ...
+
 	- urgently need this to be ready to maintain the network without all the HA overhead
 	- target nearly reached, some "actions" from the controller are missing
 		- leave the hard/soft reset stuff away first, don't think something can happen
