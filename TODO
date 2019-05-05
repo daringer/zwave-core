@@ -2,6 +2,10 @@
 - Bugs:
 --------------------------------------
 
+	- jsgrid is not always updating certain data:
+		- e.g., query stage
+		- ....
+
   - try the next idea to remove failed battery node which never wakes up: (startup option)
 		PyOptionList = {'AppendLogFile': {'doc': 'Append new session logs to existing log file (false = overwrite).', 'type': 'Bool'}, 
 		'Associate': {'doc': 'Enable automatic association of the controller with group one of every device.', 'type': 'Bool'}, 
