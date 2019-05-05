@@ -1,4 +1,64 @@
 
+- Bugs:
+--------------------------------------
+
+  - association tables are buggy with multiple tables/assocs (see RGBW)
+
+  - adding new node, does not add the node to the jsgrid, see log:
+
+01:31:07::066	Controller Command	ctrl_node_id: 1 node: n/a node_id: n/a state_int: 7 state: Completed state_full: The command has completed successfully. error_int: 0 error: n/a error_full: n/a
+01:31:07::706	Controller Command	ctrl_node_id: 1 node: n/a node_id: n/a state_int: 6 state: InProgress state_full: The controller is communicating with the other device to carry out the command. error_int: 0 error: n/a error_full: n/a
+01:31:07::803	Controller Command	ctrl_node_id: 1 node: n/a node_id: n/a state_int: 1 state: Starting state_full: The command is starting. error_int: 0 error: n/a error_full: n/a
+01:31:07::455	Value Changed	node_id: 74 value_id: 72057595294220327 value_data: 2.02
+01:31:07::625	Value Changed	node_id: 74 value_id: 72057595294220311 value_data: 3.52
+01:31:07::578	Value Changed	node_id: 74 value_id: 72057595294220295 value_data: 3
+01:31:07::317	Value Changed	node_id: 74 value_id: 72057595294220327 value_data: 2.02
+01:31:07::545	Value Changed	node_id: 74 value_id: 72057595294220311 value_data: 3.52
+01:31:07::987	Value Changed	node_id: 74 value_id: 72057595294220295 value_data: 3
+01:31:07::446	Value Added	node_id: 74 value_id: 144115189322170368 value_data: false
+01:31:07::839	Value Added	node_id: 74 value_id: 72057595289666228 value_data: ALARM RELAY ON - relay will turn ON upon receipt of alarm frame
+01:31:07::428	Value Added	node_id: 74 value_id: 72057595289666212 value_data: ALARM FLASHING - relay will turn ON and OFF periodically (see param.39)
+01:31:07::465	Value Added	node_id: 74 value_id: 72057595289666196 value_data: ALARM RELAY OFF - relay will turn OFF upon receipt of alarm frame
+01:31:07::491	Value Added	node_id: 74 value_id: 72057595289666180 value_data: ALARM FLASHING - relay will turn ON and OFF periodically (see param.39)
+01:31:07::568	Value Added	node_id: 74 value_id: 72057595289666166 value_data: 600
+01:31:07::576	Value Added	node_id: 74 value_id: 72057595289666068 value_data: ALARM RELAY ON - relay will turn ON upon receipt of alarm frame
+01:31:07::022	Value Added	node_id: 74 value_id: 72057595289666052 value_data: ALARM FLASHING - relay will turn ON and OFF periodically (see param.39)
+01:31:07::258	Value Added	node_id: 74 value_id: 72057595289666036 value_data: ALARM RELAY OFF - relay will turn OFF upon receipt of alarm frame
+01:31:07::432	Value Added	node_id: 74 value_id: 72057595289666020 value_data: ALARM FLASHING - relay will turn ON and OFF periodically (see param.39)
+01:31:07::136	Value Added	node_id: 74 value_id: 72057595289665796 value_data: State saved at power failure, all outputs are set to previous state upon power restore
+01:31:07::425	Value Added	node_id: 74 value_id: 72057595289665780 value_data: Disable Dimmer/Roller shutter control
+01:31:07::466	Value Added	node_id: 74 value_id: 72057595289665764 value_data: Bi-stable input (switch)
+01:31:07::514	Value Added	node_id: 74 value_id: 72057595289665748 value_data: Toggle
+01:31:07::439	Value Added	node_id: 74 value_id: 72057595289665652 value_data: Device status is checked
+01:31:07::647	Value Added	node_id: 74 value_id: 72057595289665636 value_data: Map status to all devices in group 1 (default)
+01:31:07::536	Value Added	node_id: 74 value_id: 72057595289665622 value_data: 0
+01:31:07::062	Value Added	node_id: 74 value_id: 72057595289665606 value_data: 0
+01:31:07::573	Value Added	node_id: 74 value_id: 72057595289665588 value_data: Manual override disabled
+01:31:07::113	Value Added	node_id: 74 value_id: 72057595289665556 value_data: ALL ON active / ALL OFF active
+01:31:07::773	Node Naming	node_id: 74
+01:31:07::795	Notification	args: {'notificationType': 'Notification', 'homeId': 4122048103, 'nodeId': 74, 'notificationCode': 2}
+01:31:07::849	Controller Command	ctrl_node_id: 1 node: n/a node_id: n/a state_int: 7 state: Completed state_full: The command has completed successfully. error_int: 0 error: n/a error_full: n/a
+01:31:07::908	Value Added	node_id: 74 value_id: 72057595293909142 value_data: 0
+01:31:07::763	Value Added	node_id: 74 value_id: 72057595293909124 value_data: Failed
+01:31:07::752	Value Added	node_id: 74 value_id: 72057595293909112 value_data: false
+01:31:07::428	Value Added	node_id: 74 value_id: 72057595293909096 value_data: false
+01:31:07::386	Value Added	node_id: 74 value_id: 72057595293909078 value_data: 0
+01:31:07::282	Value Added	node_id: 74 value_id: 72057595293909060 value_data: Normal
+01:31:07::106	Value Added	node_id: 74 value_id: 72057595293909041 value_data: 0
+01:31:07::897	Value Added	node_id: 74 value_id: 72057595293909032 value_data: false
+01:31:07::533	Value Added	node_id: 74 value_id: 72057595293909009 value_data: 0
+01:31:07::612	Value Added	node_id: 74 value_id: 72057595293908996 value_data: Normal
+01:31:07::644	Value Added	node_id: 74 value_id: 72057595294220327 value_data: Unknown
+01:31:07::443	Value Added	node_id: 74 value_id: 72057595294220311 value_data: Unknown
+01:31:07::842	Value Added	node_id: 74 value_id: 72057595294220295 value_data: Unknown
+01:31:07::828	Value Added	node_id: 74 value_id: 72057595292663812 value_data: Disabled
+01:31:07::698	Value Added	node_id: 74 value_id: 72057595284242432 value_data: false
+01:31:07::517	Node Protocol Info	node_id: 74
+01:31:07::585	Node Added	node_id: 74
+01:31:07::042	Controller Command	ctrl_node_id: 1 node: n/a node_id: n/a state_int: 6 state: InProgress state_full: The controller is communicating with the other device to carry out the command. error_int: 0 error: n/a error_full: n/a
+
+
+
 - OZWCP replacement (top top top prio)
 --------------------------------------
 	- urgently need this to be ready to maintain the network without all the HA overhead
