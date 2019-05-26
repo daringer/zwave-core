@@ -25,7 +25,7 @@ from openzwave.network import ZWaveNetwork
 from openzwave.controller import ZWaveController
 from openzwave.option import ZWaveOption
 
-from enums import NetState, OptionState, FrontendAction
+from enums import NetState, OptionState #, FrontendAction
 
 
 ###### own
@@ -40,6 +40,8 @@ from consts import *
 
 from mqtt_client import MyMQTTClient
 
+from mmpy_snips import get_rest_decorator
+
 ### load config
 cfg_fn = "zwave_core.yaml"
 if len(sys.argv) >= 3:
@@ -52,12 +54,13 @@ cfg = ItemsToAttrs({})
 with open(cfg_fn, "rb") as fd:
     cfg = ItemsToAttrs(yaml.load(fd))
 
-
-
 signals_debug = cfg.debug.signals
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = cfg.secret
+
+# mmpy_snips
+rest = get_rest_decorator(app)
 
 api = Api(app)
 
@@ -69,13 +72,11 @@ def output_json(data, code, headers=None):
     resp.headers.extend(headers or {})
     return resp
 
-
 # bring up our async tooling
 socketio = SocketIO(app, async_mode="eventlet")
 thread = None
 thread_lock = Lock()
 
-# do not touch for now, but undeniably needs improvements: @TODO
 @socketio.on("connect", namespace="/websocket")
 def io_connect():
     emit("message", {"msg": "Hello World (from websocket server)"},
@@ -88,8 +89,6 @@ def io_connect():
             try:
                 item = sig_queue.get(timeout=5)
                 socketio.send(to_json(item), namespace="/websocket")
-                #socketio.send(json.dumps(item), namespace="/websocket")
-
             except Empty:
                 continue
 
