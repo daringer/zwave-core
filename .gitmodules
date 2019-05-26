@@ -1,3 +1,3 @@
-[submodule "mmpy_snips"]
-	path = mmpy_snips
+[submodule "zwave_core/mmpy_snips"]
+	path = zwave_core/mmpy_snips
 	url = git@github.com:daringer/mmpy_snips.git
