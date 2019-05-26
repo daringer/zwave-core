@@ -362,17 +362,54 @@ $( function() {
 		// how to translate all the cryptic codes to read-able error/info messages???
 		// -> only openzwave.org website's docs ?
 		// -> official zwave docs ?
-	});
+        var code = data.notificationCode;
+        if (!gob.debug) {
+            var msg = "";
+            let signal = "ZWave::Notification";
+		    var stamp = Date.now();
+            var uuid = 123145132;
+
+            switch(code) {
+                case 0:    // completed message
+                  msg = "message completely sent, node_id: ${data.node_id}";
+                  break;
+                case 1:    // (timeout) issued by message(s) timing out
+                  msg = "message timeout reached, node_id: ${data.node_id}";
+                  break;
+                case 2:    // (no-op sent) NoOperation message sent completion
+                  msg = "message no-op sent, node_id: ${data.node_id}";
+                  break;
+                case 3:    // (node wake's-up) reported on node -> wake-up
+                  msg = "message recived about wake-up, node_id: ${data.node_id}";
+                  break;
+                case 4:    // (node says goodnight) reported on node -> sleep
+                  msg = "msg announces sleep, node_id: ${data.node_id}";
+                  break;
+                case 5:    // (node dead) node considered dead currently by the ctrl
+                  msg = "msg describing node a dead, node_id: ${data.no}";
+                  break;
+                case 6:    // (node revive sucess) node revive (due to connection or similar)
+                  msg = "message completely sent, node_id: ${data.node_id}";
+                  break;
+                default:
+                  // mmh
+            }
+    		var msg = Object.keys(data).map((key) => `${key}: ${data[key]} `);
+	    	IO.log(msg, stamp, signal, uuid);
+         }
+    });
 
 	$( document ).on("ZWave::ControllerCommand", function(ev, data) {
-			// also don't know what to do here!?
-		  // actually the "raw" signals shall be hidden and
+	  // also don't know what to do here!?
+	  // actually the "raw" signals shall be hidden and
       // just high-lvl info should be displayed (on-demand ? configurable? two event jsgrids?)
+
 	});
 
 	$( document ).on("ZWave::NodeNaming", function(ev, data) {
-			// nothing to do, just the confirmation for success on set_field()
-		  // for name/location
+		 // nothing to do, just the confirmation for success on set_field()
+	     // for name/location
+        //@TODO: WRONG, we of course have to update the jsgrid with it...
 	});
 
 	// value is added to node, important for a perfect startup
@@ -478,10 +515,13 @@ $( function() {
 				if (data[key] == "n/a")
 					delete data[key];
 
-
-		var msg = Object.keys(data).map((key) => `${key}: ${data[key]} `);
-
-		IO.log(msg, stamp, signal, uuid);
+        var handled_trigger_logging = new Array(
+            "ValueChanged", "ControllerCommand", "Notification", "ValueAdded");
+        // if handled by trigger() no need to write to log here!
+        if (!(handled_trigger_logging.some((evname) => evname == signal))) {
+    		var msg = Object.keys(data).map((key) => `${key}: ${data[key]} `);
+	    	IO.log(msg, stamp, signal, uuid);
+        }
 
 	});
 

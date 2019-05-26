@@ -2,6 +2,9 @@
 https://github.com/jeedom/plugin-openzwave/blob/beta/resources/openzwaved/ozwave/node_utils.py#L178
 
 
+NOTIFICATIONS:
+https://github.com/tobiasgraf/open-zwave/blob/70e5f6712cc5b92818a4c7425d3441b2d1607866/cpp/src/Notification.cpp
+
 >>> def killit(nid):
 ...     tree = etree.parse("zwcfg_0xf5b17667.xml")
 ...     namespace = tree.getroot().tag[1:].split("}")[0]
@@ -17,7 +20,7 @@ https://github.com/jeedom/plugin-openzwave/blob/beta/resources/openzwaved/ozwave
 - Bugs:
 --------------------------------------
 
-  - removing failed battery devices:
+  - removing failed battery devices: (IN PROGRESS)
 		- (1) start ctrl with: AssumeAwake option, force onto failed list, remove node, restart...
 		- (2) stop ctrl, remove commandclass 132 (wakeup-device) from xml inside failed node, node will be flagged as dead, -> remove failed device
 		- (3) ???
@@ -30,12 +33,6 @@ https://github.com/jeedom/plugin-openzwave/blob/beta/resources/openzwaved/ozwave
 	- jsgrid is not always updating certain data:
 		- e.g., query stage, well seems none of them is updated ?
 		- ....
-
-  - try the next idea to remove failed battery node which never wakes up: (startup option)
-		PyOptionList = {'AppendLogFile': {'doc': 'Append new session logs to existing log file (false = overwrite).', 'type': 'Bool'},
-		'Associate': {'doc': 'Enable automatic association of the controller with group one of every device.', 'type': 'Bool'},
-		'AssumeAwake': {'doc': 'Assume Devices that Support the Wakeup CC are awake when we first query them ...', 'type': 'Bool'},
-		'ConfigPath': {'doc': 'Path to the OpenZWave config folder.', 'type': 'String'}, 'ConsoleOutput': {'d
 
 	- allow filtering in log window, or other configurations (list len, etc...)
 

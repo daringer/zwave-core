@@ -154,11 +154,6 @@ class SignalManager(object):
         if str(sender) == "_Anonymous":
             del out["sender"]
 
-        #if sig == "ValueChanged":
-        #    out["frontend_action"] = FrontendAction.update_value
-        #elif sig == "ValueAdded":
-        #    out["frontend_action"] = FrontendAction.add_value | FrontendAction.update_value
-
         if signals_debug:
             print("PARSED:", out)
 
