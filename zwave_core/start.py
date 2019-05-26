@@ -128,28 +128,6 @@ def no_controller(error):
     return ret_jerr(415, "no controller found")
 
 
-# woho, brain-shrinking 8-liner, pythonic-fanciness including brain-damage
-# wrapping decorator aliases its arguments based on the decorating method/alias name
-# @TODO: another (sub-)closure to apply jsonify breaks it, help, why?
-# @FIXME: an instance is needed, could __call__ be used?
-class _rest:
-    """
-    Shorter, fancier, http-method-driven app-routing, usage:
-    @rest.get("/my/url/<int:foo>/endpoint")
-    def my_view(foo, opt_arg=None):
-        return jsonify({"some_data": 123})
-    """
-    def __getattr__(self, key):
-        return self._wrap(key)
-
-    def _wrap(self, method):
-        @functools.wraps(app.route)
-        def func(*v, **kw):
-            kw["methods"] = [method.upper()]
-            return app.route(*v, **kw)
-        return func
-rest = _rest()
-
 # @TODO: all (web-)socket related components shall be in one place...
 sig_queue = Queue()
 #sig_archive = {}

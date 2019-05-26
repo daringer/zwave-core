@@ -93,7 +93,6 @@ input:disabled, .ui-controlgroup-halfbutton:disabled, .ui-button:disabled {
 		float:left;
 }
 
-
 .val_data_label, .val_data_content, .val_data, .val_data_label_extra,.group_cur_max,
 .val_data_minmax, .val_data_extra_text, .group_data_label, .group_data_assoc, .group_data_assoc_add,
 .action_node_link, .prop_data, .prop_data_content, .prop_data_label, .group_data_assoc_icon {

@@ -1,0 +1,3 @@
+[submodule "mmpy_snips"]
+	path = mmpy_snips
+	url = git@github.com:daringer/mmpy_snips.git
