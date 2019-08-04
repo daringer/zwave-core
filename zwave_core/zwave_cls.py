@@ -40,7 +40,12 @@ class ZWaveCoreBaseClass:
 
     def __getattr__(self, key):
         if key in self._wrapped_members:
-            return getattr(self._ozw_obj, key)
+            try:
+                return getattr(self._ozw_obj, key)
+            except TypeError as e:
+                print ("TypeError - key: {key}")
+                print(e)
+                return None
         return object.__getattribute__(self, key)
 
     def __setattr__(self, key, val):
