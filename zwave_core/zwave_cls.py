@@ -43,8 +43,10 @@ class ZWaveCoreBaseClass:
             try:
                 return getattr(self._ozw_obj, key)
             except TypeError as e:
-                print ("TypeError - key: {key}")
+                print (f"TypeError - key: {key}")
                 print(e)
+                import traceback as tb
+                tb.print_stack()
                 return None
         return object.__getattribute__(self, key)
 

@@ -52,7 +52,7 @@ if not os.path.exists(cfg_fn):
 
 cfg = ItemsToAttrs({})
 with open(cfg_fn, "rb") as fd:
-    cfg = ItemsToAttrs(yaml.load(fd))
+    cfg = ItemsToAttrs(yaml.safe_load(fd))
 
 signals_debug = cfg.debug.signals
 
@@ -457,7 +457,8 @@ class Node(Resource):
         is_ctrl = node.role == "Central Controller" and "primaryController" in node.capabilities
 
         return ret_ajax({
-            "values": dict((v.value_id, v.to_dict()) for v in node.values.values()),
+            "values": dict((v.value_id, v.to_dict())
+                           for v in node.values.values()),
             "actions": NODE_ACTIONS,
             "groups": dict((g.index, g.to_dict()) for g in node.groups.values()),
             "stats": node.stats,
