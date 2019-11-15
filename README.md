@@ -4,6 +4,9 @@
 * You are simply looking to (finally) replace **ozwcp** to maintain your network hassle-free? here you go!
 * Access to your network from any automation with REST or publish your network as MQTT! (not yet available)
 
+
+<a href="https://www.buymeacoffee.com/daringer" target="_blank"> <img src="https://cdn.buymeacoffee.com/buttons/lato-green.png" alt="Buy Me A Coffee Or Beer" height=22></a>
+
 The current status:
 * Z-Wave backend / REST API: **beta**
 * Browser Frontend: **alpha** 
