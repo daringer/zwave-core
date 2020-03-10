@@ -1,4 +1,10 @@
+**This project is closing its doors. With the advent of https://github.com/cgarwood/homeassistant-zwave_mqtt using https://github.com/OpenZWave/qt-openzwave a.k.a. `ozwdaemon` there is not much more I could wish for (let's say the stole, my idea if anyone asks :smile:). In good open-source fashion I'll better invest into these projects instead of re-inventing the wheel. It was a short, but fun ride...**
+
+to be an archive soon
+
+--------------------
 # Z-Wave Core - Complete, flexible, pluggable
+
 
 * Maintain, troubleshoot, investigate the details of your Z-Wave network
 * You are simply looking to (finally) replace **ozwcp** to maintain your network hassle-free? here you go!
